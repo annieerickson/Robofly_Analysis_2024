@@ -1,7 +1,8 @@
 ![header](images/robofly_header.png)
 
-Software and Jupyter notebook with robofly data analysis for Melis,
-Siwanowicz, and Dickinson 2024.
+Software and Jupyter notebook for extracting force and torque data from the
+robotic fly experiments and plotting forces uperimposed on 3D wing kinematics
+from Melis, Siwanowicz, and Dickinson 2024.
 
 ### System Requirements
 
