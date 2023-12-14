@@ -2,8 +2,8 @@
 
 Software and Jupyter notebook for extracting force and torque data from the
 robotic fly experiments and plotting forces uperimposed on 3D wing kinematics
-from Melis, Siwanowicz, and Dickinson 2024.  Contains code for generating data
-figure 5 and extended data figure 6.
+from Melis, Siwanowicz, and Dickinson 2024.  Contains code for generating extended data
+figures 5 and  6.
 
 ### System Requirements
 
