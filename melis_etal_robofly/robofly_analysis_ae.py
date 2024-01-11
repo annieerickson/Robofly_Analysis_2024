@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from scipy import interpolate, optimize
 import h5py
+from scipy.special import binom
 
 from .lollipop_figure_ae import Lollipop
 
@@ -21,11 +22,11 @@ class RoboAnalysis():
         self.g = 9800.0
         self.f = 200.0
         self.mass = 1.034e-6
-        self.rho_fly = 1.18e-9
-        self.rho_robo = 880.0e-9
-        self.R_fly = 2.7
-        self.R_robo = 250.0
-        self.n_fly = 180.0
+        self.rho_fly = 1.18e-9 #density of air
+        self.rho_robo = 880.0e-9 #density oil
+        self.R_fly = 2.7 #mm length of fly wing
+        self.R_robo = 250.0 #length robofly wing
+        self.n_fly = 180.0 #freq of fly 
         self.n_robo = self.n_fly*(self.R_fly**2/self.R_robo**2)*(115/15.5)
         self.F_scaling = 1000*(self.rho_fly*self.n_fly**2*self.R_fly**4)/(self.rho_robo*self.n_robo**2*self.R_robo**4)
         print('F scaling')
@@ -219,12 +220,13 @@ class RoboAnalysis():
     #if eta = eta_0 + xi/3 in 'coef_to_robofly wb' save_wb_2_txt function
     def euler_angle_shift_shift_eta(self,phi,theta,eta,xi,beta,phi_shift):
         phi_n      = -phi+phi_shift
-        eta_n      = -eta-(xi/3)
-        theta_n  = theta
-        xi_n      = -3.0*xi
+        theta_n    = theta
+        xi_n       = -3.0*xi
+        eta_n      = -eta-(xi_n/3) 
         return phi_n,theta_n,eta_n,xi_n
 
-    def convert_to_SRF(self,beta,phi_shift, shift_eta=False):
+    #need to add in right wing?, only converts wb 4?
+    def convert_to_SRF(self,beta,phi_shift, shift_eta=True):
 
         wb_select = ((self.T_fast>=4.0)&(self.T_fast<5.0))
 
@@ -621,6 +623,8 @@ class RoboAnalysis():
             phi_R     = self.wingkin_SRF_list[test_ind][2,:]
             xi_R     = self.wingkin_SRF_list[test_ind][3,:]
             n_pts     = xi_R.shape[0]
+
+            #if include forces in this way only including contributions of aerodynamic forces 
             FX_L     = self.FT_total_wing_list[test_ind][0,:]
             FY_L     = self.FT_total_wing_list[test_ind][1,:]
             FZ_L     = self.FT_total_wing_list[test_ind][2,:]
@@ -733,8 +737,88 @@ class RoboAnalysis():
 
     def to_deg(self,x):
         return x*(180.0/np.pi) 
+    
+    def LegendrePolynomials(self, N_pts,N_pol,n_deriv):
+        """
+        N_const: degree stitch together subsequent wingbeats
+        N_deriv: number of derivatives to computer for legendre basis
+        """
+        L_basis = np.zeros((N_pts,N_pol,n_deriv))
+        x_basis = np.linspace(-1.0,1.0,N_pts,endpoint=True)
+        for i in range(n_deriv):
+            if i==0:
+                # Legendre basis:
+                for n in range(N_pol):
+                    if n==0:
+                        L_basis[:,n,i] = 1.0
+                    elif n==1:
+                        L_basis[:,n,i] = x_basis
+                    else:
+                        for k in range(n+1):
+                            L_basis[:,n,i] += (1.0/np.power(2.0,n))*np.power(binom(n,k),2)*np.multiply(np.power(x_basis-1.0,n-k),np.power(x_basis+1.0,k))
+            else:
+                # Derivatives:
+                for n in range(N_pol):
+                    if n>=i:
+                        L_basis[:,n,i] = n*L_basis[:,n-1,i-1]+np.multiply(x_basis,L_basis[:,n-1,i])
+        return L_basis
+    
+    def reconstruct_trace_coef_matrix(self, cur_coeffs, deriv_num=0, n_deriv=2, N_pts=100):
+        """
+        return trace for vector for a coefficients (often avg coeff vector)
+        if reading in multiple wbs need to transpose to coef by # wbs
+        """
+        L_basis = self.LegendrePolynomials(N_pts, len(cur_coeffs), n_deriv)
+        return np.matmul(L_basis[:,:,deriv_num], cur_coeffs)
 
-    def plot_flyami_wingkin_robofly_input_overlay(self, data, save_loc, save_fig=True, side='L', time_period='baseline'):
+    #produces same results as new SRF conversion, same slight temporal offset
+    def convert_to_SRF_original(self,beta,phi_shift):
+        
+        # #previous
+        # self.wingkin_SRF = np.zeros((4,self.FT_out.shape[1]))
+        # self.FT_SRF = np.zeros(self.FT_out.shape)
+        #to account for new scaling 
+        self.wingkin_SRF = np.zeros((4,self.FT_wing.shape[1]))
+        self.FT_SRF = np.zeros(self.FT_wing.shape)
+        # for i in range(self.N_FT_fast):
+        for i in range(np.shape(self.FT_wing)[1]):
+            # phi = np.pi*(self.wingkin_f[i,3]/180.0)-phi_shift
+            # theta = np.pi*(self.wingkin_f[i,1]/180.0)
+            # xi = 3.0*np.pi*(self.wingkin_f[i,5]/180.0)
+            # eta = np.pi*(self.wingkin_f[i,2]/180.0)
+            phi = -np.pi*(self.wingkin_f[i,3]/180.0)-phi_shift
+            theta = np.pi*(self.wingkin_f[i,1]/180.0)
+            xi = -3.0*np.pi*(self.wingkin_f[i,5]/180.0)
+            #likely want to subtract 1/3 xi that was added on, check 
+            #eta = -np.pi*(self.wingkin_f[i,2]/180.0) #current 
+            #ae testing 
+            eta = -np.pi*(self.wingkin_f[i,2]/180.0) - xi/3 #testing
+            #a_srf = -np.pi*(55.0/180.0)+beta
+            a_srf = -np.pi*(75.0/180.0)+beta #might need to change; rotates strokeplane should be around 90 deg (if forces backward or forward can rotate to get a more accurate force/body weight) 
+            # a_srf = -np.pi*(100.0/180.0)+beta 
+            #a_srf = beta
+            R_beta  = np.array([[np.cos(a_srf),0.0,np.sin(a_srf)],[0.0,1.0,0.0],[-np.sin(a_srf),0.0,np.cos(a_srf)]])
+            R_phi   = np.array([[1.0,0.0,0.0],[0.0,np.cos(phi),-np.sin(phi)],[0.0,np.sin(phi),np.cos(phi)]])
+            R_theta = np.array([[np.cos(-theta),-np.sin(-theta),0.0],[np.sin(-theta),np.cos(-theta),0.0],[0.0,0.0,1.0]])
+            R_eta   = np.array([[np.cos(eta),0.0,np.sin(eta)],[0.0,1.0,0.0],[-np.sin(eta),0.0,np.cos(eta)]])
+            R_total = np.dot(np.dot(np.dot(R_beta,R_phi),R_theta),R_eta)
+            #R_total = np.dot(R_beta,np.dot(R_phi,np.dot(R_theta,R_eta)))
+            R_mat = np.zeros((6,6))
+            R_mat[:3,:3] = R_total
+            R_mat[3:,3:] = R_total
+            FT_i = self.FT_wing[:,i]
+            self.FT_SRF[:,i] = np.dot(R_mat,FT_i)
+
+            #force sensor undergoes changes in phi, theta, eta, etc so need to "undo" the rotations to get the forces on the wing (not rotating)
+
+            #wing kinematics remain the same 
+
+            self.wingkin_SRF[0,i] = theta
+            self.wingkin_SRF[1,i] = eta
+            self.wingkin_SRF[2,i] = phi
+            self.wingkin_SRF[3,i] = xi
+
+    def plot_flyami_wingkin_robofly_input_overlay(self, data, save_loc, save_fig=True, side='L', time_period='baseline', original_SRF=False):
         """
         plot wing kinematics from flyami and robofly inputs overlayed for left and right wing baseline and activation 
         plot wing kinematics using original wingbeats from flyami (not reconstructed traces! or shifted angles)
@@ -742,6 +826,8 @@ class RoboAnalysis():
 
         data: read in hdf5 file 
         """
+
+        data_movie = data
 
         # concat, mean and plot 
         angle_dict = {'phi': 0, 'theta': 1, 'eta': 2, 'xi': 3}
@@ -766,17 +852,24 @@ class RoboAnalysis():
         else:
             ind = 1
 
-    
         # in strokeplane 
-        self.wingkin_SRF_wb_5 = self.wingkin_SRF_list[ind][:]
-        self.wingkin_SRF_wb_6 = self.wingkin_SRF_list[ind][:]
+        if original_SRF==True:
+            wb_select = ((self.T_fast>=4.0)&(self.T_fast<5.0)) #just take wb 4 for now
+            angle_wb = self.wingkin_SRF_list[ind][:,wb_select]
+    
+        else:
+            angle_wb = self.wingkin_SRF_list[ind][:]
+        
+        #self.wingkin_SRF_wb_5 = self.wingkin_SRF_list[ind][:]
+        #self.wingkin_SRF_wb_6 = self.wingkin_SRF_list[ind][:]
         
 
         for angle in angles:
-            angle_wingkin_5 = self.wingkin_SRF_wb_5[wingkin_SRF_dict[angle],:]
-            angle_wingkin_6 = self.wingkin_SRF_wb_6[wingkin_SRF_dict[angle],:]
-            angle_wingkin = np.vstack((angle_wingkin_5, angle_wingkin_6))
-            angle_mean_wb = np.mean(angle_wingkin, axis=0)
+            angle_mean_wb = angle_wb[wingkin_SRF_dict[angle],:]
+            #angle_wingkin_5 = self.wingkin_SRF_wb_5[wingkin_SRF_dict[angle],:]
+            #angle_wingkin_6 = self.wingkin_SRF_wb_6[wingkin_SRF_dict[angle],:]
+            # angle_wingkin = np.vstack((angle_wingkin_5, angle_wingkin_6))
+            # angle_mean_wb = np.mean(angle_wingkin, axis=0)
             relative_t = np.linspace(0,1,len(angle_mean_wb))
 
             axs[angle_dict[angle]].plot(relative_t, self.to_deg(angle_mean_wb), color='#1090e6', label='robofly wingkin_SRF')
@@ -798,36 +891,80 @@ class RoboAnalysis():
 
     
         # plot wingkin, adapted from flyami_plotting combined flies
-
+            
+        # get data for all angles
         for row, euler_angle in enumerate(angles):
 
-            wing_side = side
+            #all flies 
+            pre_data_all_flies = []
+            stim_data_all_flies = []
+            pre_data_freq_all_flies = []
+            stim_data_freq_all_flies = []
 
-            baseline_wb_combined = []
-            stim_wb_combined = []
 
-            for fly_id in data.keys():
+            for fly_n, fly in enumerate(data_movie.keys()): 
 
-                #baseline 
-                all_baseline_wb = data[fly_id + '/angle/' + euler_angle + '/' + wing_side + '/wb/pre'][:]
+                movie_list = data_movie[fly].keys()
 
-                #activation 
+                #per fly 
+                pre_data_fly = []
+                stim_data_fly = []
+                pre_data_freq_fly = []
+                stim_data_freq_fly = []
+
                 
-                all_stim_wb = data[fly_id + '/angle/' + euler_angle + '/' + wing_side + '/wb/stim'][:]
+                for movie_n, movie in enumerate(movie_list):
+
+                    # precoef
+                    pre_data = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/a/' + 'pre'][:]
+                    pre_frame_starts = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/wb/' + 'wb_frame_start']['pre'][:]
+                    pre_frame_ends = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/wb/' + 'wb_frame_end']['pre'][:]
+
+                    #stim coef
+                    stim_data = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/a/' + 'stim'][:]
+                    stim_frame_starts = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/wb/' + 'wb_frame_start']['stim'][:]
+                    stim_frame_ends = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/wb/' + 'wb_frame_end']['stim'][:]
+
+                    # post ceof 
+                    post_data = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/a/' + 'post'][:]
+                    post_frame_starts = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/wb/' + 'wb_frame_start']['post'][:]
+                    post_frame_ends = data_movie[fly + '/' + movie + '/angle/' + euler_angle + '/' + side + '/wb/' + 'wb_frame_end']['post'][:]
+
+                    # get pulse start and pulse end 
+                    pulse_start = data_movie[fly + '/' + movie + '/time_stamps/' + 'pulse_start'][:][0]
+                    pulse_end = data_movie[fly + '/' + movie + '/time_stamps/' + 'pulse_end'][:][0]
+
+                    
+
+                    # check if any arrays are empty, and dont include that trial if so
+
+                    if (len(pre_data)==0) or (len(stim_data)==0) or (len(post_data)==0):
+                        continue
+
+                    else:
+                        # add to respective time frame, take mean for each fly, then mean across flies
+                        # add to per fly arr
+                        pre_data_fly.extend(pre_data)
+                        stim_data_fly.extend(stim_data)
+                        
+                #avg mean of all movies/fly 
+                pre_data_all_flies.append(np.mean(pre_data_fly, axis=0))
+                stim_data_all_flies.append(np.mean(stim_data_fly, axis=0))
+                if euler_angle=='xi':
+                    pre_data_freq_all_flies.append(np.mean(pre_data_freq_fly))
+                    stim_data_freq_all_flies.append(np.mean(stim_data_freq_fly))
+
                 
-                baseline_wb_combined.append(all_baseline_wb)
-                stim_wb_combined.append(all_stim_wb)
+            #now take mean of fly means for each angle 
+            baseline_coef = np.mean(pre_data_all_flies, axis=0)
+            activation_coef = np.mean(stim_data_all_flies, axis=0)
 
+            baseline_avg = self.reconstruct_trace_coef_matrix(baseline_coef, N_pts=100)
+            activation_avg = self.reconstruct_trace_coef_matrix(activation_coef, N_pts=100)
 
-            baseline_traces = np.vstack(baseline_wb_combined)
-            stim_traces = np.vstack(stim_wb_combined)   
-        
-            #baseline
-            baseline_avg = np.mean(baseline_traces, axis=0)
             time = np.linspace(0,1,len(baseline_avg)) # timescale in units of wingbeat
-            #activation
-            activation_avg = np.mean(stim_traces, axis=0)
             
+           
             if time_period=='baseline':
                 axs[row].plot(time, self.to_deg(baseline_avg), color='black', linestyle='-', linewidth=1, label='flyami')
                 
@@ -835,7 +972,7 @@ class RoboAnalysis():
                  axs[row].plot(time, self.to_deg(activation_avg), color='black', linestyle='-', linewidth=1, label='flyami')
 
             if euler_angle=='eta':
-                print('eta min flyami: ' + str(np.min(self.to_deg(activation_avg))))
+                print('eta min flyami: ' + str(np.min(self.to_deg(baseline_avg))))
 
             axs[3].set_ylim(-60, 60)
             axs[3].set_yticks([-60, 0, 60])
