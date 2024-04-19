@@ -73,8 +73,10 @@ class RoboAnalysis():
         self.FT_SRF_list = []
         self.wingkin_SRF_list= []
         # FT wb
-        self.FT_wb_median_list = []
-        self.FT_wb_median_wing_list = []
+        # self.FT_wb_median_list = []
+        # self.FT_wb_median_wing_list = []
+        self.FT_wb_mean_list = []
+        self.FT_wb_mean_wing_list = []
         self.FT_wb_std_list = []
         self.FT_wb_3_list = []
         self.FT_wb_3_mean_list = []
@@ -134,7 +136,9 @@ class RoboAnalysis():
         # time
         self.t_FT_fast = self.wingkin_f[:,0]
         self.N_FT_fast = self.wingkin_f.shape[0]
-        self.t_FT_slow = self.wingkin_s[:,0]/4.0
+        #this should actually be 5.0 times slower 
+        # self.t_FT_slow = self.wingkin_s[:,0]/4.0
+        self.t_FT_slow = self.wingkin_s[:,0]/5.0
         self.N_FT_slow = self.wingkin_s.shape[0]
         # Non-dimensional time
         self.T_fast = (self.t_FT_fast/self.t_FT_fast[-1])*7.0
@@ -142,6 +146,7 @@ class RoboAnalysis():
         # FT wing
         self.FT_wing = self.compute_FT_wing(self.FT_out)
 
+    #still do sign flip on the right wing for 1,3,5
     def compute_FT_wing(self,FT_in):
         L_cross = np.array([[0.0,-42.0,0.0],[42,0.0,0.0],[0.0,0.0,0.0]])
         R_wing1 = np.array([[1.0,0.0,0.0],[0.0,0.0,0.0],[0.0,-1.0,0.0]])
@@ -198,7 +203,11 @@ class RoboAnalysis():
         self.FTI_vel_b_list.append(self.FTI_vel_Lb)
         self.FTI_acc_b_list.append(self.FTI_acc_Lb)
         # Total forces
-        FT_total = self.FTI_vel_Lw+self.FTI_acc_Lw+self.FT_wb_median
+        #FT_wb_median needs to be scaled to fly scale *F_scaling
+        #FT_total = self.FTI_vel_Lw+self.FTI_acc_Lw+self.FT_wb_median
+        #scaled
+        # FT_total = (self.FTI_vel_Lw+self.FTI_acc_Lw+self.FT_wb_median*self.F_scaling)
+        FT_total = (self.FTI_vel_Lw+self.FTI_acc_Lw+self.FT_wb_mean*self.F_scaling)
         #FT_total = self.FT_wb_median
         self.FT_total_wing_list.append(FT_total)
         # Mean forces
@@ -225,14 +234,14 @@ class RoboAnalysis():
         eta_n      = -eta-(xi_n/3) 
         return phi_n,theta_n,eta_n,xi_n
 
-    #need to add in right wing?, only converts wb 4?
+    #need to add in right wing?, 
     def convert_to_SRF(self,beta,phi_shift, shift_eta=True):
 
         wb_select = ((self.T_fast>=4.0)&(self.T_fast<5.0))
 
-        wb_select4 = ((self.T_fast>=3.0)&(self.T_fast<4.0))
-        wb_select5 = ((self.T_fast>=4.0)&(self.T_fast<5.0))
-        wb_select6 = ((self.T_fast>=5.0)&(self.T_fast<6.0))
+        wb_select_4 = ((self.T_fast>=3.0)&(self.T_fast<4.0))
+        wb_select_5 = ((self.T_fast>=4.0)&(self.T_fast<5.0))
+        wb_select_6 = ((self.T_fast>=5.0)&(self.T_fast<6.0))
 
         self.N_pts = np.sum(wb_select)
 
@@ -240,10 +249,24 @@ class RoboAnalysis():
 
         self.t = np.linspace(0,1/self.f,num=self.N_pts)
 
-        xi_Lt      = np.pi*(self.wingkin_f[wb_select,5]/180.0)
-        theta_Lt = np.pi*(self.wingkin_f[wb_select,1]/180.0)
-        eta_Lt      = np.pi*(self.wingkin_f[wb_select,2]/180.0)
-        phi_Lt      = np.pi*(self.wingkin_f[wb_select,3]/180.0)
+        # xi_Lt      = np.pi*(self.wingkin_f[wb_select,5]/180.0)
+        # theta_Lt = np.pi*(self.wingkin_f[wb_select,1]/180.0)
+        # eta_Lt      = np.pi*(self.wingkin_f[wb_select,2]/180.0)
+        # phi_Lt      = np.pi*(self.wingkin_f[wb_select,3]/180.0)
+
+        #take mean of wb 4,5,6
+        wb_456 = np.zeros((self.N_pts,13,3))
+        wb_456[:,:,0] = np.pi*(self.wingkin_f[wb_select_4,:]/180.0)
+        wb_456[:,:,1] = np.pi*(self.wingkin_f[wb_select_5,:]/180.0)
+        wb_456[:,:,2] = np.pi*(self.wingkin_f[wb_select_6,:]/180.0)
+        wb_mean = np.mean(wb_456, axis=2)
+
+        xi_Lt      = wb_mean[:,5]
+        theta_Lt   = wb_mean[:,1]
+        eta_Lt     = wb_mean[:,2]
+        phi_Lt     = wb_mean[:,3]
+        
+
 
         if shift_eta==False:
             self.phi_L,self.theta_L,self.eta_L,self.xi_L = self.euler_angle_shift(phi_Lt,theta_Lt,eta_Lt,xi_Lt,-beta,-phi_shift)
@@ -295,11 +318,13 @@ class RoboAnalysis():
         self.FTI_vel_Lb = np.zeros((6,self.N_pts))
 
         FT_456 = np.zeros((6,self.N_pts,3))
-        FT_456[:,:,0] = self.FT_wing[:,wb_select4]
-        FT_456[:,:,1] = self.FT_wing[:,wb_select5]
-        FT_456[:,:,2] = self.FT_wing[:,wb_select6]
+        FT_456[:,:,0] = self.FT_wing[:,wb_select_4]
+        FT_456[:,:,1] = self.FT_wing[:,wb_select_5]
+        FT_456[:,:,2] = self.FT_wing[:,wb_select_6]
 
-        self.FT_wb_median = np.mean(FT_456,axis=2)
+        # self.FT_wb_median = np.mean(FT_456,axis=2)
+        self.FT_wb_mean = np.mean(FT_456,axis=2)
+
 
         for i in range(self.N_pts):
             
@@ -322,7 +347,9 @@ class RoboAnalysis():
             R_mat[:3,:3] = np.dot(np.transpose(R_beta),R_L)
             R_mat[3:,3:] = np.dot(np.transpose(R_beta),R_L)
 
-            FT_i = self.FT_wb_median[:,i]
+            # FT_i = self.FT_wb_median[:,i]
+            FT_i = self.FT_wb_mean[:,i]
+
             self.FT_SRF[:,i] = np.dot(R_mat,FT_i)
             self.wingkin_SRF[0,i] = self.theta_L[i]
             self.wingkin_SRF[1,i] = self.eta_L[i]
@@ -416,10 +443,6 @@ class RoboAnalysis():
 
     def get_L_R_fnames_avg(self, file_name_list, period='baseline', naming_scheme='new'):
         for file_n in file_name_list:
-            # if (file_n.split('_')[3]=='avg') and (file_n.split('_')[7]==period) and (file_n.split('_')[5]=='L'):
-            #     L_fname = file_n
-            # if (file_n.split('_')[3]=='avg') and (file_n.split('_')[7]==period) and (file_n.split('_')[5]=='R'):
-            #     R_fname = file_n 
 
             if naming_scheme=='old':
 
