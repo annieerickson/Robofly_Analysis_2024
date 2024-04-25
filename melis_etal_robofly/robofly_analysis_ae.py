@@ -12,6 +12,7 @@ from scipy.special import binom
 
 from .lollipop_figure_ae import Lollipop
 
+
 class RoboAnalysis():
 
     def __init__(self):
@@ -20,22 +21,22 @@ class RoboAnalysis():
         self.dy = 0.1
         self.dz = 0.1
         self.g = 9800.0
-        self.f = 200.0
+        # self.f = 200.0
         self.mass = 1.034e-6
         self.rho_fly = 1.18e-9 #density of air
         self.rho_robo = 880.0e-9 #density oil
         self.R_fly = 2.7 #mm length of fly wing
         self.R_robo = 250.0 #length robofly wing
-        self.n_fly = 180.0 #freq of fly 
-        self.n_robo = self.n_fly*(self.R_fly**2/self.R_robo**2)*(115/15.5)
-        self.F_scaling = 1000*(self.rho_fly*self.n_fly**2*self.R_fly**4)/(self.rho_robo*self.n_robo**2*self.R_robo**4)
-        print('F scaling')
-        print(self.F_scaling)
-        print('')
-        self.M_scaling = 1000*(self.rho_fly*self.n_fly**2*self.R_fly**5)/(self.rho_robo*self.n_robo**2*self.R_robo**5)
-        print('M scaling')
-        print(self.M_scaling)
-        print('')
+        # self.n_fly = 180.0 #freq of fly #define on a per trial basis
+        # self.n_robo = self.n_fly*(self.R_fly**2/self.R_robo**2)*(115/15.5) #~1.4x diff from n_robo old (although calc on a per trial basis- could explain gain factor of 2?)
+        # self.F_scaling = 1000*(self.rho_fly*self.n_fly**2*self.R_fly**4)/(self.rho_robo*self.n_robo**2*self.R_robo**4) #define per trial
+        # print('F scaling')
+        # print(self.F_scaling)
+        # print('')
+        # self.M_scaling = 1000*(self.rho_fly*self.n_fly**2*self.R_fly**5)/(self.rho_robo*self.n_robo**2*self.R_robo**5)
+        # print('M scaling')
+        # print(self.M_scaling)
+        # print('')
         # time
         self.t_FT_f_list = []
         self.t_FT_s_list = []
@@ -107,6 +108,90 @@ class RoboAnalysis():
         # mean forces
         self.FT_mean_list = []
 
+        # just for L and R avg wbs
+        self.t_FT_f_list_means = []
+        self.t_FT_s_list_means = []
+        self.t_P_f_list_means = []
+        self.t_P_s_list_means = []
+        # FT
+        self.FT_gravity_list_means = []
+        self.FT_data_f_list_means = []
+        self.FT_data_s_list_means = []
+        self.FT_filt_f_list_means = []
+        self.FT_filt_s_list_means = []
+        self.FT_out_list_means = []
+        self.FT_raw_f_list_means = []
+        self.FT_raw_s_list_means = []
+        self.FT_trace_f_list_means = []
+        self.FT_trace_s_list_means = []
+        # bias
+        self.bias_data_wing_list_means = []
+        self.bias_wing_list_means = []
+        # filter
+        self.filter_gain_f_list_means = []
+        self.filter_gain_s_list_means = []
+        # Wing kinematics
+        self.wingkin_f_list_means = []
+        self.wingkin_s_list_means = []
+        # time
+        self.t_FT_fast_list_means = []
+        self.N_FT_fast_list_means = []
+        self.t_FT_slow_list_means = []
+        self.N_FT_slow_list_means = []
+        # Non-dimensional time
+        self.T_fast_list_means = []
+        self.T_slow_list_means = []
+        # SRF
+        self.FT_SRF_list_means = []
+        self.wingkin_SRF_list_means= []
+        # FT wb
+        # self.FT_wb_median_list_means = []
+        # self.FT_wb_median_wing_list_means = []
+        # self.FT_wb_std_list_means = []
+        # self.FT_wb_3_list_means = []
+        # self.FT_wb_3_mean_list_means = []
+        # self.wingkin_wb_3_list_means = []
+        # self.FT_wb_4_list_means = []
+        # self.FT_wb_4_mean_list_means = []
+        # self.wingkin_wb_4_list_means = []
+        # self.FT_wb_5_list_means= []
+        # self.FT_wb_5_mean_list_means = []
+        # self.wingkin_wb_5_list_means = []
+        # self.FT_wb_6_list_means = []
+        # self.FT_wb_6_mean_list_means = []
+        # self.wingkin_wb_6_list_means = []
+        # self.FT_wb_7_list = []
+        # self.FT_wb_7_mean_list = []
+        # self.wingkin_wb_7_list = []
+        # self.FT_wb_8_list = []
+        # self.FT_wb_8_mean_list = []
+        # self.wingkin_wb_8_list = []
+        self.FT_wing_list_means = []
+        # angular velocities
+        self.omega_list_means = []
+        # power
+        self.power_list_means = []
+        self.freq_list_means = []
+        self.M_scaling_list_means = []
+        self.F_scaling_list_means = []
+
+
+    def add_freq_and_scaling(self, freq_fly, n_wbs):
+        """
+        create freq variable per trial (input, robofly) and calc scaling from 
+        """
+        self.n_fly 		  = freq_fly
+        print(self.n_fly)
+        self.f = freq_fly 
+        self.n_robo 	  = n_wbs/(self.t_FT_fast[-1]*(10**-6))
+        print(str(self.n_robo))
+        self.F_scaling 	  = 1000*(self.rho_fly*self.n_fly**2*self.R_fly**4)/(self.rho_robo*self.n_robo**2*self.R_robo**4)
+        self.M_scaling 	  = 1000*(self.rho_fly*self.n_fly**2*self.R_fly**5)/(self.rho_robo*self.n_robo**2*self.R_robo**5)
+        #add to list
+        self.freq_list_means.append(self.n_fly)
+        self.F_scaling_list_means.append(self.F_scaling)
+        self.M_scaling_list_means.append(self.M_scaling)
+
 
     def load_mat_file(self,file_loc_in,file_name_in):
         file_path = pathlib.Path(file_loc_in, file_name_in)
@@ -147,6 +232,7 @@ class RoboAnalysis():
         self.FT_wing = self.compute_FT_wing(self.FT_out)
 
     #still do sign flip on the right wing for 1,3,5
+    #add a gain factor?
     def compute_FT_wing(self,FT_in):
         L_cross = np.array([[0.0,-42.0,0.0],[42,0.0,0.0],[0.0,0.0,0.0]])
         R_wing1 = np.array([[1.0,0.0,0.0],[0.0,0.0,0.0],[0.0,-1.0,0.0]])
@@ -162,6 +248,7 @@ class RoboAnalysis():
         FT_w = np.dot(R_mat,FT_neg)
         return FT_w
 
+    # for a single trial 
     def add_data_to_list(self):
         # time
         self.t_FT_f_list.append(self.t_FT_f)
@@ -213,6 +300,60 @@ class RoboAnalysis():
         # Mean forces
         self.FT_mean_list.append(self.FT_mean)
 
+    # for left and right trials of baseline and stim periods
+    def add_data_to_list_means(self):
+        # time
+        self.t_FT_f_list_means.append(self.t_FT_f)
+        self.t_FT_s_list_means.append(self.t_FT_s)
+        # FT
+        self.FT_gravity_list_means.append(self.FT_gravity)
+        self.FT_data_f_list_means.append(self.FT_data_f)
+        self.FT_data_s_list_means.append(self.FT_data_s)
+        self.FT_filt_f_list_means.append(self.FT_filt_f)
+        self.FT_filt_s_list_means.append(self.FT_filt_s)
+        self.FT_out_list_means.append(self.FT_out)
+        self.FT_raw_f_list_means.append(self.FT_raw_f)
+        #.FT_raw_s_list.append(self.FT_raw_s)
+        self.FT_trace_f_list_means.append(self.FT_trace_f)
+        #self.FT_trace_s_list.append(self.FT_trace_s)
+        # bias
+        self.bias_data_wing_list_means.append(self.bias_data_wing)
+        self.bias_wing_list_means.append(self.bias_wing)
+        # filter
+        self.filter_gain_f_list_means.append(self.filter_gain_f)
+        self.filter_gain_s_list_means.append(self.filter_gain_s)
+        # Wing kinematics
+        self.wingkin_f_list_means.append(self.wingkin_f)
+        self.wingkin_s_list_means.append(self.wingkin_s)
+        # time
+        self.t_FT_fast_list_means.append(self.t_FT_fast)
+        self.N_FT_fast_list_means.append(self.N_FT_fast)
+        self.t_FT_slow_list_means.append(self.t_FT_slow)
+        self.N_FT_slow_list_means.append(self.N_FT_slow)
+        # Non-dimensional time
+        self.T_fast_list_means.append(self.T_fast)
+        self.T_slow_list_means.append(self.T_slow)
+        # FT_strkpln
+        self.FT_SRF_list_means.append(self.FT_SRF)
+        self.wingkin_SRF_list_means.append(self.wingkin_SRF)
+        # FT wb
+        # self.FT_wb_5_list_means.append(self.FT_wb_5)
+        # self.FT_wb_5_mean_list_means.append(self.FT_wb_5_mean)
+        # self.wingkin_wb_5_list_means.append(self.wingkin_wb_5)
+        # self.FT_wb_6_list_means.append(self.FT_wb_6)
+        # self.FT_wb_6_mean_list_means.append(self.FT_wb_6_mean)
+        # self.wingkin_wb_6_list_means.append(self.wingkin_wb_6)
+        
+        self.FT_wb_mean_list_means.append(self.FT_wb_mean)
+        self.FT_wb_mean_wing_list_means.append(self.FT_wb_mean_wing)
+        # std
+        # self.FT_wb_std_list_means.append(self.FT_wb_std)
+        # FT wing:
+        self.FT_wing_list_means.append(self.FT_wing)
+        
+        self.power_list_means.append(self.power)
+        
+
     def set_srf_angle(self,srf_in):
         self.srf_angle = srf_in
 
@@ -234,7 +375,7 @@ class RoboAnalysis():
         eta_n      = -eta-(xi_n/3) 
         return phi_n,theta_n,eta_n,xi_n
 
-    #need to add in right wing?, 
+    #need to add in right wing?, do anything different for aero forces with right wing?
     def convert_to_SRF(self,beta,phi_shift, shift_eta=True):
 
         wb_select = ((self.T_fast>=4.0)&(self.T_fast<5.0))
@@ -432,6 +573,7 @@ class RoboAnalysis():
         #axs3[1,2].plot(self.t,np.mean(self.FT_SRF[5,:]*self.M_scaling+self.FTI_acc_Lb[5,:]+self.FTI_vel_Lb[5,:])*t_ones,color='k')
         
         # Save FT_mean
+        # not sure that I will need this 
         FT_m_array = np.zeros((6,4))
         FT_m_array[:3,0] = np.mean(self.FT_SRF[:3,:]*self.F_scaling,axis=1)
         FT_m_array[3:,0] = np.mean(self.FT_SRF[3:,:]*self.M_scaling,axis=1)
@@ -439,6 +581,57 @@ class RoboAnalysis():
         FT_m_array[:,2] = np.mean(self.FTI_vel_Lb,axis=1)
         FT_m_array[:,3] = FT_m_array[:,0]+FT_m_array[:,1]+FT_m_array[:,2]
         self.FT_mean = FT_m_array
+
+    #plotting functions for testing 
+    def plot_wing_kinematics_and_forces_breakdown(self):
+        """"
+        plot left wing (for now) total forces (FT SRF + Lb inerital) for baseline
+        plot left wing forces broken down by FT SRF and Lb vel, acceleration separately
+        """
+        Fg = self.mass*self.g
+        FgR = self.mass*self.g*self.R_fly
+
+        
+        fig, axs = plt.subplots(2,3)
+    
+
+        #aero force only (SRF)
+        axs[0,0].plot(self.t,self.FT_SRF[0,:]*self.F_scaling/Fg,color='b')
+        axs[0,1].plot(self.t,self.FT_SRF[1,:]*self.F_scaling/Fg,color='b')
+        axs[0,2].plot(self.t,self.FT_SRF[2,:]*self.F_scaling/Fg,color='b')
+        axs[1,0].plot(self.t,self.FT_SRF[3,:]*self.M_scaling/FgR,color='b')
+        axs[1,1].plot(self.t,self.FT_SRF[4,:]*self.M_scaling/FgR,color='b')
+        axs[1,2].plot(self.t,self.FT_SRF[5,:]*self.M_scaling/FgR,color='b')
+
+        #acceleration
+        axs[0,0].plot(self.t,self.FTI_acc_Lb[0,:]/Fg,color='g')
+        axs[0,1].plot(self.t,self.FTI_acc_Lb[1,:]/Fg,color='g')
+        axs[0,2].plot(self.t,self.FTI_acc_Lb[2,:]/Fg,color='g')
+        axs[1,0].plot(self.t,self.FTI_acc_Lb[3,:]/FgR,color='g')
+        axs[1,1].plot(self.t,self.FTI_acc_Lb[4,:]/FgR,color='g')
+        axs[1,2].plot(self.t,self.FTI_acc_Lb[5,:]/FgR,color='g')
+
+        #velocity
+        axs[0,0].plot(self.t,self.FTI_vel_Lb[0,:]/Fg,color='r')
+        axs[0,1].plot(self.t,self.FTI_vel_Lb[1,:]/Fg,color='r')
+        axs[0,2].plot(self.t,self.FTI_vel_Lb[2,:]/Fg,color='r')
+        axs[1,0].plot(self.t,self.FTI_vel_Lb[3,:]/FgR,color='r')
+        axs[1,1].plot(self.t,self.FTI_vel_Lb[4,:]/FgR,color='r')
+        axs[1,2].plot(self.t,self.FTI_vel_Lb[5,:]/FgR,color='r')
+
+        #all together
+        axs[0,0].plot(self.t,(self.FT_SRF[0,:]*self.F_scaling+self.FTI_acc_Lb[0,:]+self.FTI_vel_Lb[0,:])/Fg,color='k')
+        axs[0,1].plot(self.t,(self.FT_SRF[1,:]*self.F_scaling+self.FTI_acc_Lb[1,:]+self.FTI_vel_Lb[1,:])/Fg,color='k')
+        axs[0,2].plot(self.t,(self.FT_SRF[2,:]*self.F_scaling+self.FTI_acc_Lb[2,:]+self.FTI_vel_Lb[2,:])/Fg,color='k')
+        axs[1,0].plot(self.t,(self.FT_SRF[3,:]*self.M_scaling+self.FTI_acc_Lb[3,:]+self.FTI_vel_Lb[3,:])/FgR,color='k')
+        axs[1,1].plot(self.t,(self.FT_SRF[4,:]*self.M_scaling+self.FTI_acc_Lb[4,:]+self.FTI_vel_Lb[4,:])/FgR,color='k')
+        axs[1,2].plot(self.t,(self.FT_SRF[5,:]*self.M_scaling+self.FTI_acc_Lb[5,:]+self.FTI_vel_Lb[5,:])/FgR,color='k')
+
+        fig.set_size_inches(10,30)
+        plt.tight_layout()
+        plt.show()
+
+
 
 
     def get_L_R_fnames_avg(self, file_name_list, period='baseline', naming_scheme='new'):
@@ -841,6 +1034,65 @@ class RoboAnalysis():
             self.wingkin_SRF[2,i] = phi
             self.wingkin_SRF[3,i] = xi
 
+    def get_L_R_fnames_avg_bl_stim(self, file_name_list, naming_scheme='new'):
+        """
+        return list of L and R filenames (if sparc maps side ipsilateral to activation to Left wing)
+        """
+        for file_n in file_name_list:
+
+            if naming_scheme=='old':
+                #sparc "uni" second part of name 
+                #map all Ipsilateral to left wing 
+                if file_n.split('_')[1]=='uni':
+                    if (file_n.split('_')[2]=='avg') and (file_n.split('_')[6]=='baseline') and (file_n.split('_')[4]=='I'):
+                        L_fname_baseline = file_n
+                    if (file_n.split('_')[2]=='avg') and (file_n.split('_')[6]=='baseline') and (file_n.split('_')[4]=='C'):
+                        R_fname_baseline = file_n 
+
+                    if (file_n.split('_')[2]=='avg') and (file_n.split('_')[6]=='stim') and (file_n.split('_')[4]=='I'):
+                        L_fname_stim = file_n
+                    if (file_n.split('_')[2]=='avg') and (file_n.split('_')[6]=='stim') and (file_n.split('_')[4]=='C'):
+                        R_fname_stim = file_n 
+
+                else:
+                #new naming scheme
+                    if (file_n.split('_')[1]=='avg') and (file_n.split('_')[5]=='baseline') and (file_n.split('_')[3]=='L'):
+                        L_fname_baseline = file_n
+                    if (file_n.split('_')[1]=='avg') and (file_n.split('_')[5]=='baseline') and (file_n.split('_')[3]=='R'):
+                        R_fname_baseline = file_n 
+
+                    if (file_n.split('_')[1]=='avg') and (file_n.split('_')[5]=='stim') and (file_n.split('_')[3]=='L'):
+                        L_fname_stim = file_n
+                    if (file_n.split('_')[1]=='avg') and (file_n.split('_')[5]=='stim') and (file_n.split('_')[3]=='R'):
+                        R_fname_stim = file_n 
+
+            else:
+                if file_n.split('_')[1]=='unilateral':
+                    if (file_n.split('_')[3]!='25') and (file_n.split('_')[3]=='baseline') and (file_n.split('_')[2]=='I'):
+                        L_fname_baseline = file_n
+                    if (file_n.split('_')[3]!='25') and (file_n.split('_')[3]=='baseline') and (file_n.split('_')[2]=='C'):
+                        R_fname_baseline = file_n 
+
+                    if (file_n.split('_')[3]!='25') and (file_n.split('_')[3]=='stim') and (file_n.split('_')[2]=='I'):
+                        L_fname_stim = file_n
+                    if (file_n.split('_')[3]!='25') and (file_n.split('_')[3]=='stim') and (file_n.split('_')[2]=='C'):
+                        R_fname_stim = file_n 
+
+                else:
+                #new naming scheme
+                    if (file_n.split('_')[2]!='25') and (file_n.split('_')[2]=='baseline') and (file_n.split('_')[1]=='L'):
+                        L_fname_baseline = file_n
+                    if (file_n.split('_')[2]!='25') and (file_n.split('_')[2]=='baseline') and (file_n.split('_')[1]=='R'):
+                        R_fname_baseline = file_n 
+
+                    if (file_n.split('_')[2]!='25') and (file_n.split('_')[2]=='stim') and (file_n.split('_')[1]=='L'):
+                        L_fname_stim = file_n
+                    if (file_n.split('_')[2]!='25') and (file_n.split('_')[2]=='stim') and (file_n.split('_')[1]=='R'):
+                        R_fname_stim = file_n
+
+
+        return [L_fname_baseline, R_fname_baseline, L_fname_stim, R_fname_stim]
+
     def plot_flyami_wingkin_robofly_input_overlay(self, data, save_loc, save_fig=True, side='L', time_period='baseline', original_SRF=False):
         """
         plot wing kinematics from flyami and robofly inputs overlayed for left and right wing baseline and activation 
@@ -1025,3 +1277,9 @@ class RoboAnalysis():
 #     data_fpath = '/Users/anneerickson/Documents/Caltech/Dickinson/Flyami_analysis/prelim_geno_plots/NDF_removed_0.5s_combined/with_timestamps/1070_individual_flies_wb_a.hdf5'
 #     data = h5py.File(data_fpath, 'r')
 #     RA.plot_flyami_wingkin_robofly_input_overlay(data, None, save_fig=False, side='L', time_period='baseline')
+
+
+#TODO:right wing convert to SRF, 
+#load in stim and baseline files, 
+#per trial n_fly and an_robo, 
+#check gain factor need to be added in?
