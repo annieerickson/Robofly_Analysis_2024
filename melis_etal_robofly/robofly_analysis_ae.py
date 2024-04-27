@@ -144,6 +144,10 @@ class RoboAnalysis():
         # SRF
         self.FT_SRF_list_means = []
         self.wingkin_SRF_list_means= []
+        self.FTI_vel_w_list_means = []
+        self.FTI_acc_w_list_means = []
+        self.FTI_vel_b_list_means = []
+        self.FTI_acc_b_list_means = []
         # FT wb
         # self.FT_wb_median_list_means = []
         # self.FT_wb_median_wing_list_means = []
@@ -229,11 +233,11 @@ class RoboAnalysis():
         self.T_fast = (self.t_FT_fast/self.t_FT_fast[-1])*7.0
         self.T_slow = (self.t_FT_slow/self.t_FT_slow[-1])*7.0
         # FT wing
-        self.FT_wing = self.compute_FT_wing(self.FT_out)
+        self.FT_wing = self.compute_FT_wing(self.FT_out, gain_factor=1.0) #gain factor from conversion from robofly 
 
     #still do sign flip on the right wing for 1,3,5
     #add a gain factor?
-    def compute_FT_wing(self,FT_in):
+    def compute_FT_wing(self,FT_in, gain_factor=1.0):
         L_cross = np.array([[0.0,-42.0,0.0],[42,0.0,0.0],[0.0,0.0,0.0]])
         R_wing1 = np.array([[1.0,0.0,0.0],[0.0,0.0,0.0],[0.0,-1.0,0.0]])
         R_wing2 = np.array([[1.0,0.0,0.0],[0.0,0.0,1.0],[0.0,-1.0,0.0]])
@@ -246,7 +250,7 @@ class RoboAnalysis():
         FT_neg[3,:] = -FT_neg[3,:]
         FT_neg[5,:] = -FT_neg[5,:]
         FT_w = np.dot(R_mat,FT_neg)
-        return FT_w
+        return FT_w*gain_factor
 
     # for a single trial 
     def add_data_to_list(self):
@@ -336,6 +340,12 @@ class RoboAnalysis():
         # FT_strkpln
         self.FT_SRF_list_means.append(self.FT_SRF)
         self.wingkin_SRF_list_means.append(self.wingkin_SRF)
+        #inertia terms 
+        self.FTI_vel_w_list_means.append(self.FTI_vel_Lw)
+        self.FTI_acc_w_list_means.append(self.FTI_acc_Lw)
+        self.FTI_vel_b_list_means.append(self.FTI_vel_Lb)
+        self.FTI_acc_b_list_means.append(self.FTI_acc_Lb)
+
         # FT wb
         # self.FT_wb_5_list_means.append(self.FT_wb_5)
         # self.FT_wb_5_mean_list_means.append(self.FT_wb_5_mean)
@@ -344,14 +354,14 @@ class RoboAnalysis():
         # self.FT_wb_6_mean_list_means.append(self.FT_wb_6_mean)
         # self.wingkin_wb_6_list_means.append(self.wingkin_wb_6)
         
-        self.FT_wb_mean_list_means.append(self.FT_wb_mean)
-        self.FT_wb_mean_wing_list_means.append(self.FT_wb_mean_wing)
+        # self.FT_wb_mean_list_means.append(self.FT_wb_mean)
+        # self.FT_wb_mean_wing_list_means.append(self.FT_wb_mean_wing)
         # std
         # self.FT_wb_std_list_means.append(self.FT_wb_std)
         # FT wing:
         self.FT_wing_list_means.append(self.FT_wing)
         
-        self.power_list_means.append(self.power)
+        # self.power_list_means.append(self.power)
         
 
     def set_srf_angle(self,srf_in):
@@ -386,7 +396,7 @@ class RoboAnalysis():
 
         self.N_pts = np.sum(wb_select)
 
-        self.dt = 1.0/(self.N_pts*self.f)
+        self.dt = 1.0/(self.N_pts*self.f)[0] #turn from array into single val
 
         self.t = np.linspace(0,1/self.f,num=self.N_pts)
 
@@ -514,62 +524,62 @@ class RoboAnalysis():
         self.FT_SRF[3:,:] += np.dot(cg_cross,self.FT_SRF[:3,:])
 
 
-        t_ones = np.ones(self.N_pts)
+        # t_ones = np.ones(self.N_pts)
 
-        Fg = self.mass*self.g
-        FgR = self.mass*self.g*self.R_fly
+        # Fg = self.mass*self.g
+        # FgR = self.mass*self.g*self.R_fly
 
         
-        fig3, axs3 = plt.subplots(2,3)
-        fig3.set_figwidth(12)
-        fig3.set_figheight(12)
-        axs3[0,0].plot(self.t,self.FT_SRF[0,:]*self.F_scaling/Fg,color='b')
-        axs3[0,1].plot(self.t,self.FT_SRF[1,:]*self.F_scaling/Fg,color='b')
-        axs3[0,2].plot(self.t,self.FT_SRF[2,:]*self.F_scaling/Fg,color='b')
-        axs3[1,0].plot(self.t,self.FT_SRF[3,:]*self.M_scaling/FgR,color='b')
-        axs3[1,1].plot(self.t,self.FT_SRF[4,:]*self.M_scaling/FgR,color='b')
-        axs3[1,2].plot(self.t,self.FT_SRF[5,:]*self.M_scaling/FgR,color='b')
-        axs3[0,0].plot(self.t,self.FTI_acc_Lb[0,:]/Fg,color='g')
-        axs3[0,1].plot(self.t,self.FTI_acc_Lb[1,:]/Fg,color='g')
-        axs3[0,2].plot(self.t,self.FTI_acc_Lb[2,:]/Fg,color='g')
-        axs3[1,0].plot(self.t,self.FTI_acc_Lb[3,:]/FgR,color='g')
-        axs3[1,1].plot(self.t,self.FTI_acc_Lb[4,:]/FgR,color='g')
-        axs3[1,2].plot(self.t,self.FTI_acc_Lb[5,:]/FgR,color='g')
-        axs3[0,0].plot(self.t,self.FTI_vel_Lb[0,:]/Fg,color='r')
-        axs3[0,1].plot(self.t,self.FTI_vel_Lb[1,:]/Fg,color='r')
-        axs3[0,2].plot(self.t,self.FTI_vel_Lb[2,:]/Fg,color='r')
-        axs3[1,0].plot(self.t,self.FTI_vel_Lb[3,:]/FgR,color='r')
-        axs3[1,1].plot(self.t,self.FTI_vel_Lb[4,:]/FgR,color='r')
-        axs3[1,2].plot(self.t,self.FTI_vel_Lb[5,:]/FgR,color='r')
-        axs3[0,0].plot(self.t,(self.FT_SRF[0,:]*self.F_scaling+self.FTI_acc_Lb[0,:]+self.FTI_vel_Lb[0,:])/Fg,color='k')
-        axs3[0,1].plot(self.t,(self.FT_SRF[1,:]*self.F_scaling+self.FTI_acc_Lb[1,:]+self.FTI_vel_Lb[1,:])/Fg,color='k')
-        axs3[0,2].plot(self.t,(self.FT_SRF[2,:]*self.F_scaling+self.FTI_acc_Lb[2,:]+self.FTI_vel_Lb[2,:])/Fg,color='k')
-        axs3[1,0].plot(self.t,(self.FT_SRF[3,:]*self.M_scaling+self.FTI_acc_Lb[3,:]+self.FTI_vel_Lb[3,:])/FgR,color='k')
-        axs3[1,1].plot(self.t,(self.FT_SRF[4,:]*self.M_scaling+self.FTI_acc_Lb[4,:]+self.FTI_vel_Lb[4,:])/FgR,color='k')
-        axs3[1,2].plot(self.t,(self.FT_SRF[5,:]*self.M_scaling+self.FTI_acc_Lb[5,:]+self.FTI_vel_Lb[5,:])/FgR,color='k')
-        #axs3[0,0].plot(self.t,np.mean(self.FT_SRF[0,:]*self.F_scaling)*t_ones,color='b')
-        #axs3[0,1].plot(self.t,np.mean(self.FT_SRF[1,:]*self.F_scaling)*t_ones,color='b')
-        #axs3[0,2].plot(self.t,np.mean(self.FT_SRF[2,:]*self.F_scaling)*t_ones,color='b')
-        #axs3[1,0].plot(self.t,np.mean(self.FT_SRF[3,:]*self.M_scaling)*t_ones,color='b')
-        #axs3[1,1].plot(self.t,np.mean(self.FT_SRF[4,:]*self.M_scaling)*t_ones,color='b')
-        #axs3[1,2].plot(self.t,np.mean(self.FT_SRF[5,:]*self.M_scaling)*t_ones,color='b')
-        #axs3[0,0].plot(self.t,np.mean(self.FTI_acc_Lb[0,:])*t_ones,color='g')
-        #axs3[0,1].plot(self.t,np.mean(self.FTI_acc_Lb[1,:])*t_ones,color='g')
-        #axs3[0,2].plot(self.t,np.mean(self.FTI_acc_Lb[2,:])*t_ones,color='g')
-        #axs3[1,0].plot(self.t,np.mean(self.FTI_acc_Lb[3,:])*t_ones,color='g')
-        #axs3[1,1].plot(self.t,np.mean(self.FTI_acc_Lb[4,:])*t_ones,color='g')
-        #axs3[1,2].plot(self.t,np.mean(self.FTI_acc_Lb[5,:])*t_ones,color='g')
-        #axs3[0,0].plot(self.t,np.mean(self.FTI_vel_Lb[0,:])*t_ones,color='r')
-        #axs3[0,1].plot(self.t,np.mean(self.FTI_vel_Lb[1,:])*t_ones,color='r')
-        #axs3[0,2].plot(self.t,np.mean(self.FTI_vel_Lb[2,:])*t_ones,color='r')
-        #axs3[1,0].plot(self.t,np.mean(self.FTI_vel_Lb[3,:])*t_ones,color='r')
-        #axs3[1,1].plot(self.t,np.mean(self.FTI_vel_Lb[4,:])*t_ones,color='r')
-        #axs3[1,2].plot(self.t,np.mean(self.FTI_vel_Lb[5,:])*t_ones,color='r')
-        #axs3[0,0].plot(self.t,np.mean(self.FT_SRF[0,:]*self.F_scaling+self.FTI_acc_Lb[0,:]+self.FTI_vel_Lb[0,:])*t_ones,color='k')
-        #axs3[0,1].plot(self.t,np.mean(self.FT_SRF[1,:]*self.F_scaling+self.FTI_acc_Lb[1,:]+self.FTI_vel_Lb[1,:])*t_ones,color='k')
-        #axs3[0,2].plot(self.t,np.mean(self.FT_SRF[2,:]*self.F_scaling+self.FTI_acc_Lb[2,:]+self.FTI_vel_Lb[2,:])*t_ones,color='k')
-        #axs3[1,0].plot(self.t,np.mean(self.FT_SRF[3,:]*self.M_scaling+self.FTI_acc_Lb[3,:]+self.FTI_vel_Lb[3,:])*t_ones,color='k')
-        #axs3[1,1].plot(self.t,np.mean(self.FT_SRF[4,:]*self.M_scaling+self.FTI_acc_Lb[4,:]+self.FTI_vel_Lb[4,:])*t_ones,color='k')
+        # fig3, axs3 = plt.subplots(2,3)
+        # fig3.set_figwidth(12)
+        # fig3.set_figheight(12)
+        # axs3[0,0].plot(self.t,self.FT_SRF[0,:]*self.F_scaling/Fg,color='b')
+        # axs3[0,1].plot(self.t,self.FT_SRF[1,:]*self.F_scaling/Fg,color='b')
+        # axs3[0,2].plot(self.t,self.FT_SRF[2,:]*self.F_scaling/Fg,color='b')
+        # axs3[1,0].plot(self.t,self.FT_SRF[3,:]*self.M_scaling/FgR,color='b')
+        # axs3[1,1].plot(self.t,self.FT_SRF[4,:]*self.M_scaling/FgR,color='b')
+        # axs3[1,2].plot(self.t,self.FT_SRF[5,:]*self.M_scaling/FgR,color='b')
+        # axs3[0,0].plot(self.t,self.FTI_acc_Lb[0,:]/Fg,color='g')
+        # axs3[0,1].plot(self.t,self.FTI_acc_Lb[1,:]/Fg,color='g')
+        # axs3[0,2].plot(self.t,self.FTI_acc_Lb[2,:]/Fg,color='g')
+        # axs3[1,0].plot(self.t,self.FTI_acc_Lb[3,:]/FgR,color='g')
+        # axs3[1,1].plot(self.t,self.FTI_acc_Lb[4,:]/FgR,color='g')
+        # axs3[1,2].plot(self.t,self.FTI_acc_Lb[5,:]/FgR,color='g')
+        # axs3[0,0].plot(self.t,self.FTI_vel_Lb[0,:]/Fg,color='r')
+        # axs3[0,1].plot(self.t,self.FTI_vel_Lb[1,:]/Fg,color='r')
+        # axs3[0,2].plot(self.t,self.FTI_vel_Lb[2,:]/Fg,color='r')
+        # axs3[1,0].plot(self.t,self.FTI_vel_Lb[3,:]/FgR,color='r')
+        # axs3[1,1].plot(self.t,self.FTI_vel_Lb[4,:]/FgR,color='r')
+        # axs3[1,2].plot(self.t,self.FTI_vel_Lb[5,:]/FgR,color='r')
+        # axs3[0,0].plot(self.t,(self.FT_SRF[0,:]*self.F_scaling+self.FTI_acc_Lb[0,:]+self.FTI_vel_Lb[0,:])/Fg,color='k')
+        # axs3[0,1].plot(self.t,(self.FT_SRF[1,:]*self.F_scaling+self.FTI_acc_Lb[1,:]+self.FTI_vel_Lb[1,:])/Fg,color='k')
+        # axs3[0,2].plot(self.t,(self.FT_SRF[2,:]*self.F_scaling+self.FTI_acc_Lb[2,:]+self.FTI_vel_Lb[2,:])/Fg,color='k')
+        # axs3[1,0].plot(self.t,(self.FT_SRF[3,:]*self.M_scaling+self.FTI_acc_Lb[3,:]+self.FTI_vel_Lb[3,:])/FgR,color='k')
+        # axs3[1,1].plot(self.t,(self.FT_SRF[4,:]*self.M_scaling+self.FTI_acc_Lb[4,:]+self.FTI_vel_Lb[4,:])/FgR,color='k')
+        # axs3[1,2].plot(self.t,(self.FT_SRF[5,:]*self.M_scaling+self.FTI_acc_Lb[5,:]+self.FTI_vel_Lb[5,:])/FgR,color='k')
+        # #axs3[0,0].plot(self.t,np.mean(self.FT_SRF[0,:]*self.F_scaling)*t_ones,color='b')
+        # #axs3[0,1].plot(self.t,np.mean(self.FT_SRF[1,:]*self.F_scaling)*t_ones,color='b')
+        # #axs3[0,2].plot(self.t,np.mean(self.FT_SRF[2,:]*self.F_scaling)*t_ones,color='b')
+        # #axs3[1,0].plot(self.t,np.mean(self.FT_SRF[3,:]*self.M_scaling)*t_ones,color='b')
+        # #axs3[1,1].plot(self.t,np.mean(self.FT_SRF[4,:]*self.M_scaling)*t_ones,color='b')
+        # #axs3[1,2].plot(self.t,np.mean(self.FT_SRF[5,:]*self.M_scaling)*t_ones,color='b')
+        # #axs3[0,0].plot(self.t,np.mean(self.FTI_acc_Lb[0,:])*t_ones,color='g')
+        # #axs3[0,1].plot(self.t,np.mean(self.FTI_acc_Lb[1,:])*t_ones,color='g')
+        # #axs3[0,2].plot(self.t,np.mean(self.FTI_acc_Lb[2,:])*t_ones,color='g')
+        # #axs3[1,0].plot(self.t,np.mean(self.FTI_acc_Lb[3,:])*t_ones,color='g')
+        # #axs3[1,1].plot(self.t,np.mean(self.FTI_acc_Lb[4,:])*t_ones,color='g')
+        # #axs3[1,2].plot(self.t,np.mean(self.FTI_acc_Lb[5,:])*t_ones,color='g')
+        # #axs3[0,0].plot(self.t,np.mean(self.FTI_vel_Lb[0,:])*t_ones,color='r')
+        # #axs3[0,1].plot(self.t,np.mean(self.FTI_vel_Lb[1,:])*t_ones,color='r')
+        # #axs3[0,2].plot(self.t,np.mean(self.FTI_vel_Lb[2,:])*t_ones,color='r')
+        # #axs3[1,0].plot(self.t,np.mean(self.FTI_vel_Lb[3,:])*t_ones,color='r')
+        # #axs3[1,1].plot(self.t,np.mean(self.FTI_vel_Lb[4,:])*t_ones,color='r')
+        # #axs3[1,2].plot(self.t,np.mean(self.FTI_vel_Lb[5,:])*t_ones,color='r')
+        # #axs3[0,0].plot(self.t,np.mean(self.FT_SRF[0,:]*self.F_scaling+self.FTI_acc_Lb[0,:]+self.FTI_vel_Lb[0,:])*t_ones,color='k')
+        # #axs3[0,1].plot(self.t,np.mean(self.FT_SRF[1,:]*self.F_scaling+self.FTI_acc_Lb[1,:]+self.FTI_vel_Lb[1,:])*t_ones,color='k')
+        # #axs3[0,2].plot(self.t,np.mean(self.FT_SRF[2,:]*self.F_scaling+self.FTI_acc_Lb[2,:]+self.FTI_vel_Lb[2,:])*t_ones,color='k')
+        # #axs3[1,0].plot(self.t,np.mean(self.FT_SRF[3,:]*self.M_scaling+self.FTI_acc_Lb[3,:]+self.FTI_vel_Lb[3,:])*t_ones,color='k')
+        # #axs3[1,1].plot(self.t,np.mean(self.FT_SRF[4,:]*self.M_scaling+self.FTI_acc_Lb[4,:]+self.FTI_vel_Lb[4,:])*t_ones,color='k')
         #axs3[1,2].plot(self.t,np.mean(self.FT_SRF[5,:]*self.M_scaling+self.FTI_acc_Lb[5,:]+self.FTI_vel_Lb[5,:])*t_ones,color='k')
         
         # Save FT_mean
@@ -583,53 +593,161 @@ class RoboAnalysis():
         self.FT_mean = FT_m_array
 
     #plotting functions for testing 
-    def plot_wing_kinematics_and_forces_breakdown(self):
+    def plot_wing_kinematics_and_forces_breakdown(self, save_location):
         """"
-        plot left wing (for now) total forces (FT SRF + Lb inerital) for baseline
+        plot left wing (for now) total forces (FT SRF + Lb inerital) for baseline and stim
         plot left wing forces broken down by FT SRF and Lb vel, acceleration separately
         """
         Fg = self.mass*self.g
         FgR = self.mass*self.g*self.R_fly
 
         
-        fig, axs = plt.subplots(2,3)
+        fig, axs = plt.subplots(6,4) # baseline breakdown, stim breakdown, mean w/and w/o baseline, mean w/ and w/o stim
     
+        
+        # L wing, baseline and stim
+        Lwing_baseline_ind = 0
+        Lwing_stim_ind = 2
 
-        #aero force only (SRF)
-        axs[0,0].plot(self.t,self.FT_SRF[0,:]*self.F_scaling/Fg,color='b')
-        axs[0,1].plot(self.t,self.FT_SRF[1,:]*self.F_scaling/Fg,color='b')
-        axs[0,2].plot(self.t,self.FT_SRF[2,:]*self.F_scaling/Fg,color='b')
-        axs[1,0].plot(self.t,self.FT_SRF[3,:]*self.M_scaling/FgR,color='b')
-        axs[1,1].plot(self.t,self.FT_SRF[4,:]*self.M_scaling/FgR,color='b')
-        axs[1,2].plot(self.t,self.FT_SRF[5,:]*self.M_scaling/FgR,color='b')
+        t_baseline= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_baseline_ind][0,:])[0])
+        t_stim = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_stim_ind][0,:])[0])
+        #aero force only (SRF) #baseline
+        axs[0,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling/Fg,color='b', label='aero')
+        axs[1,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling/Fg,color='b')
+        axs[2,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling/Fg,color='b')
+        axs[3,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling/FgR,color='b')
+        axs[4,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling/FgR,color='b')
+        axs[5,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling/FgR,color='b')
 
-        #acceleration
-        axs[0,0].plot(self.t,self.FTI_acc_Lb[0,:]/Fg,color='g')
-        axs[0,1].plot(self.t,self.FTI_acc_Lb[1,:]/Fg,color='g')
-        axs[0,2].plot(self.t,self.FTI_acc_Lb[2,:]/Fg,color='g')
-        axs[1,0].plot(self.t,self.FTI_acc_Lb[3,:]/FgR,color='g')
-        axs[1,1].plot(self.t,self.FTI_acc_Lb[4,:]/FgR,color='g')
-        axs[1,2].plot(self.t,self.FTI_acc_Lb[5,:]/FgR,color='g')
+        #aero force only (SRF) #stim
+        axs[0,1].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling/Fg,color='b')
+        axs[1,1].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling/Fg,color='b')
+        axs[2,1].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling/Fg,color='b')
+        axs[3,1].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling/FgR,color='b')
+        axs[4,1].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling/FgR,color='b')
+        axs[5,1].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling/FgR,color='b')
 
-        #velocity
-        axs[0,0].plot(self.t,self.FTI_vel_Lb[0,:]/Fg,color='r')
-        axs[0,1].plot(self.t,self.FTI_vel_Lb[1,:]/Fg,color='r')
-        axs[0,2].plot(self.t,self.FTI_vel_Lb[2,:]/Fg,color='r')
-        axs[1,0].plot(self.t,self.FTI_vel_Lb[3,:]/FgR,color='r')
-        axs[1,1].plot(self.t,self.FTI_vel_Lb[4,:]/FgR,color='r')
-        axs[1,2].plot(self.t,self.FTI_vel_Lb[5,:]/FgR,color='r')
+        #acceleration baseline
+        axs[0,0].plot(t_baseline,self.FTI_acc_b_list_means[Lwing_baseline_ind][0,:]/Fg,color='g', label='acc')
+        axs[1,0].plot(t_baseline,self.FTI_acc_b_list_means[Lwing_baseline_ind][1,:]/Fg,color='g')
+        axs[2,0].plot(t_baseline,self.FTI_acc_b_list_means[Lwing_baseline_ind][2,:]/Fg,color='g')
+        axs[3,0].plot(t_baseline,self.FTI_acc_b_list_means[Lwing_baseline_ind][3,:]/FgR,color='g')
+        axs[4,0].plot(t_baseline,self.FTI_acc_b_list_means[Lwing_baseline_ind][4,:]/FgR,color='g')
+        axs[5,0].plot(t_baseline,self.FTI_acc_b_list_means[Lwing_baseline_ind][5,:]/FgR,color='g')
 
-        #all together
-        axs[0,0].plot(self.t,(self.FT_SRF[0,:]*self.F_scaling+self.FTI_acc_Lb[0,:]+self.FTI_vel_Lb[0,:])/Fg,color='k')
-        axs[0,1].plot(self.t,(self.FT_SRF[1,:]*self.F_scaling+self.FTI_acc_Lb[1,:]+self.FTI_vel_Lb[1,:])/Fg,color='k')
-        axs[0,2].plot(self.t,(self.FT_SRF[2,:]*self.F_scaling+self.FTI_acc_Lb[2,:]+self.FTI_vel_Lb[2,:])/Fg,color='k')
-        axs[1,0].plot(self.t,(self.FT_SRF[3,:]*self.M_scaling+self.FTI_acc_Lb[3,:]+self.FTI_vel_Lb[3,:])/FgR,color='k')
-        axs[1,1].plot(self.t,(self.FT_SRF[4,:]*self.M_scaling+self.FTI_acc_Lb[4,:]+self.FTI_vel_Lb[4,:])/FgR,color='k')
-        axs[1,2].plot(self.t,(self.FT_SRF[5,:]*self.M_scaling+self.FTI_acc_Lb[5,:]+self.FTI_vel_Lb[5,:])/FgR,color='k')
+        #acceleration stim
+        axs[0,1].plot(t_stim,self.FTI_acc_b_list_means[Lwing_stim_ind][0,:]/Fg,color='g')
+        axs[1,1].plot(t_stim,self.FTI_acc_b_list_means[Lwing_stim_ind][1,:]/Fg,color='g')
+        axs[2,1].plot(t_stim,self.FTI_acc_b_list_means[Lwing_stim_ind][2,:]/Fg,color='g')
+        axs[3,1].plot(t_stim,self.FTI_acc_b_list_means[Lwing_stim_ind][3,:]/FgR,color='g')
+        axs[4,1].plot(t_stim,self.FTI_acc_b_list_means[Lwing_stim_ind][4,:]/FgR,color='g')
+        axs[5,1].plot(t_stim,self.FTI_acc_b_list_means[Lwing_stim_ind][5,:]/FgR,color='g')
 
-        fig.set_size_inches(10,30)
+        #velocity baseline
+        axs[0,0].plot(t_baseline,self.FTI_vel_b_list_means[Lwing_baseline_ind][0,:]/Fg,color='r', label='vel')
+        axs[1,0].plot(t_baseline,self.FTI_vel_b_list_means[Lwing_baseline_ind][1,:]/Fg,color='r')
+        axs[2,0].plot(t_baseline,self.FTI_vel_b_list_means[Lwing_baseline_ind][2,:]/Fg,color='r')
+        axs[3,0].plot(t_baseline,self.FTI_vel_b_list_means[Lwing_baseline_ind][3,:]/FgR,color='r')
+        axs[4,0].plot(t_baseline,self.FTI_vel_b_list_means[Lwing_baseline_ind][4,:]/FgR,color='r')
+        axs[5,0].plot(t_baseline,self.FTI_vel_b_list_means[Lwing_baseline_ind][5,:]/FgR,color='r')
+
+        #velocity stim
+        axs[0,1].plot(t_stim,self.FTI_vel_b_list_means[Lwing_stim_ind][0,:]/Fg,color='r')
+        axs[1,1].plot(t_stim,self.FTI_vel_b_list_means[Lwing_stim_ind][1,:]/Fg,color='r')
+        axs[2,1].plot(t_stim,self.FTI_vel_b_list_means[Lwing_stim_ind][2,:]/Fg,color='r')
+        axs[3,1].plot(t_stim,self.FTI_vel_b_list_means[Lwing_stim_ind][3,:]/FgR,color='r')
+        axs[4,1].plot(t_stim,self.FTI_vel_b_list_means[Lwing_stim_ind][4,:]/FgR,color='r')
+        axs[5,1].plot(t_stim,self.FTI_vel_b_list_means[Lwing_stim_ind][5,:]/FgR,color='r')
+
+
+        #all together baseline
+        axs[0,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][0,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][0,:])/Fg,color='k', label='total')
+        axs[1,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][1,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][1,:])/Fg,color='k')
+        axs[2,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][2,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][2,:])/Fg,color='k')
+        axs[3,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][3,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][3,:])/FgR,color='k')
+        axs[4,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][4,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][4,:])/FgR,color='k')
+        axs[5,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][5,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][5,:])/FgR,color='k')
+        #mean total 
+        axs[0,2].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][0,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][0,:])/Fg),color='k', label='total')
+        axs[1,2].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][1,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][1,:])/Fg),color='k')
+        axs[2,2].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][2,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][2,:])/Fg),color='k')
+        axs[3,2].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][3,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][3,:])/FgR),color='k')
+        axs[4,2].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][4,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][4,:])/FgR),color='k')
+        axs[5,2].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][5,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][5,:])/FgR),color='k')
+        #mean aero only
+        axs[0,2].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling)/Fg),color='b', label='aero only')
+        axs[1,2].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling)/Fg),color='b')
+        axs[2,2].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling)/Fg),color='b')
+        axs[3,2].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling)/FgR),color='b')
+        axs[4,2].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling)/FgR),color='b')
+        axs[5,2].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling)/FgR),color='b')
+        
+        #all together stim
+        axs[0,1].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][0,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][0,:])/Fg,color='k')
+        axs[1,1].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][1,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][1,:])/Fg,color='k')
+        axs[2,1].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][2,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][2,:])/Fg,color='k')
+        axs[3,1].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][3,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][3,:])/FgR,color='k')
+        axs[4,1].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][4,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][4,:])/FgR,color='k')
+        axs[5,1].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][5,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][5,:])/FgR,color='k')
+        
+        #mean total 
+        axs[0,3].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][0,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][0,:])/Fg),color='k', label='total')
+        axs[1,3].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][1,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][1,:])/Fg),color='k')
+        axs[2,3].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][2,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][2,:])/Fg),color='k')
+        axs[3,3].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][3,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][3,:])/FgR),color='k')
+        axs[4,3].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][4,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][4,:])/FgR),color='k')
+        axs[5,3].scatter(0, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][5,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][5,:])/FgR),color='k')
+        #mean aero only
+        axs[0,3].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling)/Fg),color='b', label='aero only')
+        axs[1,3].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling)/Fg),color='b')
+        axs[2,3].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling)/Fg),color='b')
+        axs[3,3].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling)/FgR),color='b')
+        axs[4,3].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling)/FgR),color='b')
+        axs[5,3].scatter(1, np.mean((self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling)/FgR),color='b')
+        
+        axs[0,0].set_title('baseline L wing\nFx')
+        axs[1,0].set_title('Fy')
+        axs[2,0].set_title('Fz')
+        axs[3,0].set_title('Mx')
+        axs[4,0].set_title('My')
+        axs[5,0].set_title('Mz')
+
+        axs[0,1].set_title('stim L wing\nFx')
+        axs[1,1].set_title('Fy')
+        axs[2,1].set_title('Fz')
+        axs[3,1].set_title('Mx')
+        axs[4,1].set_title('My')
+        axs[5,1].set_title('Mz')
+
+        axs[0,2].set_title('baseline L wing\nFx mean')
+        axs[1,2].set_title('Fy mean')
+        axs[2,2].set_title('Fz mean')
+        axs[3,2].set_title('Mx mean')
+        axs[4,2].set_title('My mean')
+        axs[5,2].set_title('Mz mean')
+
+        axs[0,3].set_title('stim L wing\nFx mean')
+        axs[1,3].set_title('Fy mean')
+        axs[2,3].set_title('Fz mean')
+        axs[3,3].set_title('Mx mean')
+        axs[4,3].set_title('My mean')
+        axs[5,3].set_title('Mz mean')
+
+        for i in range(6):
+            for j in range(2):
+                axs[i,j].set_ylim([-4,6])
+
+        for i in range(6):
+            for j in [2,3]:
+                axs[i,j].set_ylim([-1,1])
+
+        
+
+        fig.set_size_inches(10,20)
         plt.tight_layout()
-        plt.show()
+        # plt.show()
+
+        plt.savefig(save_location + 'force_breakdown.png')
 
 
 
