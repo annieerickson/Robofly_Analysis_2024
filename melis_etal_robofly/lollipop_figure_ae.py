@@ -36,8 +36,8 @@ class Lollipop():
         self.blue = (0.0,0.0,1.0)
         self.n_skip = 30
         #self.glyph_color = (0.0,1.0,1.0)
-        self.glyph_color = (0.0,0.99,1.0)
-        self.glyph_color2 = (0.99,0.99,0.0)
+        # self.glyph_color = (0.0,0.99,1.0)
+        # self.glyph_color2 = (0.99,0.99,0.0)
         #self.glyph_color = (218.0/255.0,165.0/255.0,32.0/255.0)
 
     def Renderer(self):
@@ -294,7 +294,7 @@ class Lollipop():
     def set_FD(self,FD_in):
         self.FD = FD_in
 
-    def compute_tip_trace(self,wing_length,joint_L,joint_R,LE_pt,TE_pt,color_L,color_R,right_wing_on):
+    def compute_tip_trace(self,wing_length,joint_L,joint_R,LE_pt,TE_pt,color_L,color_R,color_L_trace, color_R_trace,right_wing_on):
         wt_L = np.array([0.0,wing_length,0.0])
         wt_R = np.array([0.0,-wing_length,0.0])
         wt_pts_L = np.array([[0.1,wing_length,0.0],[0.0,wing_length,0.0],[-0.1,wing_length,0.0],[-0.2,wing_length,0.0]])
@@ -344,14 +344,14 @@ class Lollipop():
             TE_trace_L[:,i] = np.dot(R_L,TE_L)+joint_L
             TE_trace_R[:,i] = np.dot(R_R,TE_R)+joint_R
             if i%self.n_skip==0:
-                self.lollipop(lollipop_L,color_L)
+                self.lollipop(lollipop_L,color_L_trace)
                 if right_wing_on>0:
-                    self.lollipop(lollipop_R,color_R)
-        self.tip_trace_L(wt_trace_L,color_L)
+                    self.lollipop(lollipop_R,color_R_trace)
+        self.tip_trace_L(wt_trace_L,color_L_trace)
         if right_wing_on>0:
-            self.tip_trace_R(wt_trace_R,color_R)
+            self.tip_trace_R(wt_trace_R,color_R_trace)
 
-    def compute_tip_forces(self,wing_length,joint_L,joint_R,LE_pt,TE_pt,color_L,color_R,right_wing_on,beta):
+    def compute_tip_forces(self,wing_length,joint_L,joint_R,LE_pt,TE_pt,color_L,color_R,color_L_trace, color_R_trace, right_wing_on,beta):
         #n_skip = 30
         wt_L = np.array([0.0,wing_length,0.0])
         wt_R = np.array([0.0,-wing_length,0.0])
@@ -411,7 +411,7 @@ class Lollipop():
             TE_trace_L[:,i] = np.dot(R_L,TE_L)+joint_L
             TE_trace_R[:,i] = np.dot(R_R,TE_R)+joint_R
             if i%self.n_skip==0:
-                self.lollipop(lollipop_L,color_L)
+                self.lollipop(lollipop_L,color_L_trace)
                 FT_i = np.array([self.FX_L[i],self.FY_L[i],self.FZ_L[i]])
                 #FT_i = np.array([self.FX_L[i],0.0,self.FZ_L[i]])
                 FT_beta = np.dot(R_L,FT_i)
@@ -420,8 +420,8 @@ class Lollipop():
                 #FT_list.append([FT_i[0],FT_i[1],FT_i[2]])
                 wt_list.append([wt_trace_L[0,i],wt_trace_L[1,i],wt_trace_L[2,i]])
                 if right_wing_on>0:
-                    self.lollipop(lollipop_R,color_R)
-        self.tip_trace_L(wt_trace_L,color_L)
+                    self.lollipop(lollipop_R,color_R_trace)
+        self.tip_trace_L(wt_trace_L,color_L_trace)
         FT_L = np.array(FT_list)
         FT_root_L = np.array(wt_list)
         self.ForceGlyphs(FT_root_L,FT_L,color_L)
@@ -435,8 +435,9 @@ class Lollipop():
         # compute cp
         cp_mean = self.compute_cp(FT_mean,3.0)
         FT_mean_root = np.array([[cp_mean[0],cp_mean[1]+0.5,cp_mean[2]],[cp_mean[0],cp_mean[1]+0.5,cp_mean[2]]])
-        #print(FT_mean)
-        self.MeanGlyph(FT_mean_root,FT_mean,color_L)
+
+        # self.MeanGlyph(FT_mean_root,FT_mean,color_L_trace)
+        
         FT_0 = np.zeros((2,3))
         FT_0[0,0] = np.mean(self.FX_0)
         FT_0[0,1] = np.mean(self.FY_0)
@@ -453,7 +454,8 @@ class Lollipop():
         FT_G[0,0] = self.FG[0]
         FT_G[0,1] = self.FG[1]
         FT_G[0,2] = self.FG[2]
-        self.MeanGlyph(FT_0_root,FT_G,self.black)
+        self.MeanGlyph(FT_0_root,FT_G,self.black)   
+
         # Body drag vector:
         FT_D = np.zeros((2,3))
         FT_D[0,0] = self.FD[0]
@@ -655,7 +657,7 @@ class Lollipop():
         tubeActor.SetMapper(tubeMapper)
         self.ren.AddActor(tubeActor)
 
-    def ForceGlyphs(self,force_root,force_vec,color_vec):
+    def ForceGlyphs(self,force_root,force_vec,glyph_color):
         arrow = vtk.vtkArrowSource()
         arrow.SetTipResolution(16)
         arrow.SetTipLength(0.1)
@@ -721,7 +723,7 @@ class Lollipop():
 
         glyphActor = vtk.vtkActor()
         glyphActor.SetMapper(glyphMapper)
-        glyphActor.GetProperty().SetColor(self.glyph_color[0],self.glyph_color[1],self.glyph_color[2])
+        glyphActor.GetProperty().SetColor(glyph_color[0],glyph_color[1],glyph_color[2])
 
         self.ren.AddActor(glyphActor)
 
