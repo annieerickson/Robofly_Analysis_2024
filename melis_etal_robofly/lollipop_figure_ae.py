@@ -436,7 +436,7 @@ class Lollipop():
         cp_mean = self.compute_cp(FT_mean,3.0)
         FT_mean_root = np.array([[cp_mean[0],cp_mean[1]+0.5,cp_mean[2]],[cp_mean[0],cp_mean[1]+0.5,cp_mean[2]]])
 
-        # self.MeanGlyph(FT_mean_root,FT_mean,color_L_trace)
+        self.MeanGlyph(FT_mean_root,FT_mean,color_L_trace)
         
         FT_0 = np.zeros((2,3))
         FT_0[0,0] = np.mean(self.FX_0)
