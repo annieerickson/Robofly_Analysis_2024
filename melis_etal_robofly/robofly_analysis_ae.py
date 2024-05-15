@@ -764,7 +764,7 @@ class RoboAnalysis():
         if wing_side=='L':
             
             tpoints = np.linspace(-np.pi,np.pi, np.shape(wb_mean[:,5])[0])
-            phi_range = np.pi(90/180) #-90 to 90 in rad
+            phi_range = np.pi*(90/180) #-90 to 90 in rad
             phi_vals = np.sin(tpoints)*phi_range
 
             xi_Lt      = np.full(np.shape(wb_mean[:,5])[0], 0)
@@ -887,7 +887,7 @@ class RoboAnalysis():
 
         else: #wing_side ==R
             tpoints = np.linspace(-np.pi,np.pi, np.shape(wb_mean[:,5])[0])
-            phi_range = np.pi(90/180) #-90 to 90 in rad
+            phi_range = np.pi*(90/180) #-90 to 90 in rad
             phi_vals = np.sin(tpoints)*phi_range
 
             xi_Rt      = np.full(np.shape(wb_mean[:,5])[0], 0)
@@ -1311,7 +1311,7 @@ class RoboAnalysis():
 
         plt.savefig(save_location + 'L_and_R_wing_force_breakdown.png')
 
-    def plot_L_and_R_wing_kinematics_and_forces_in_WRF_breakdown(self, save_location):
+    def plot_L_and_R_wing_kinematics_and_forces_in_WRF_breakdown(self, save_location, save_name_prepend=''):
         """"
         plot left and right wing total forces for baseline in wing reference frame
         plot left and right wing forces broken down by FT and Lb vel, acceleration separately
@@ -1382,12 +1382,12 @@ class RoboAnalysis():
 
 
         #all together baseline
-        axs[0,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][0,:]),color='k', label='total')
-        axs[1,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][1,:]),color='k')
-        axs[2,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][2,:]),color='k')
-        axs[3,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][3,:]),color='k')
-        axs[4,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][4,:]),color='k')
-        axs[5,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][5,:]),color='k')
+        axs[0,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][0,:]),color='k', label='total',alpha=0.5)
+        axs[1,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][1,:]),color='k',alpha=0.5)
+        axs[2,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][2,:]),color='k',alpha=0.5)
+        axs[3,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][3,:]),color='k',alpha=0.5)
+        axs[4,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][4,:]),color='k',alpha=0.5)
+        axs[5,0].plot(t_baseline,(self.FT_total_wing_list_means[Lwing_baseline_ind][5,:]),color='k',alpha=0.5)
         
         #mean total 
         axs[0,2].scatter(0, np.mean((self.FT_total_wing_list_means[Lwing_baseline_ind][0,:])),color='k', label='total')
@@ -1407,12 +1407,12 @@ class RoboAnalysis():
         
         
         #all together Rwing
-        axs[0,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][0,:]),color='k', label='total')
-        axs[1,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][1,:]),color='k')
-        axs[2,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][2,:]),color='k')
-        axs[3,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][3,:]),color='k')
-        axs[4,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][4,:]),color='k')
-        axs[5,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][5,:]),color='k')
+        axs[0,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][0,:]),color='k', label='total', alpha=0.5)
+        axs[1,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][1,:]),color='k', alpha=0.5)
+        axs[2,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][2,:]),color='k', alpha=0.5)
+        axs[3,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][3,:]),color='k', alpha=0.5)
+        axs[4,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][4,:]),color='k', alpha=0.5)
+        axs[5,1].plot(t_baseline,(self.FT_total_wing_list_means[Rwing_baseline_ind][5,:]),color='k', alpha=0.5)
 
 
         #mean total 
@@ -1477,7 +1477,7 @@ class RoboAnalysis():
         plt.tight_layout()
         # plt.show()
 
-        plt.savefig(save_location + 'L_and_R_wing_WRF_force_breakdown.png')
+        plt.savefig(save_location + save_name_prepend + 'L_and_R_wing_WRF_force_breakdown.png')
         plt.close()
 
         # make a second fig with sum(x**2 + y**2 + z**2) for inertial forces (acc and vel) for one wing stroke and see if ==0?
@@ -1522,7 +1522,7 @@ class RoboAnalysis():
         plt.tight_layout()
         # plt.show()
 
-        plt.savefig(save_location + 'L_and_R_wing_inertial_WRF_sum_1_wb.png')
+        plt.savefig(save_location + save_name_prepend+ 'L_and_R_wing_inertial_WRF_sum_1_wb.png')
         plt.close()
         
 
@@ -1844,6 +1844,212 @@ class RoboAnalysis():
         view_up = [0,0,1]
         img_name = test_name+'_back.jpg'
         LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+
+
+    def make_lollipop_figure_baseline_only_inertial_wingtip(self,exp_name,save_loc, scaling_factor=60):
+        """
+        baseline only
+        inertial forces (vel, acc, vel+acc) instaneous at wingtip 
+        can fed in kinematics with only phi as sin wave  
+        """
+        
+        LP = Lollipop()
+        LP.Renderer()
+        LP.ConstructModel(True)
+        s_thorax  = np.array([np.cos((-35.0/180.0)*np.pi/2.0),0.0,np.sin((-35.0/180.0)*np.pi/2.0),0.0,0.0,0.0,0.0])
+        s_head       = np.array([np.cos((-5.0/180.0)*np.pi/2.0),0.0,np.sin((-5.0/180.0)*np.pi/2.0),0.0,0.55,0.0,0.42])
+        s_abdomen = np.array([np.cos((-70.0/180.0)*np.pi/2.0),0.0,np.sin((-70.0/180.0)*np.pi/2.0),0.0,0.0,0.0,-0.1])
+        body_scale = [0.80,0.85,0.90]
+        body_clr = [(0.7,0.7,0.7)]
+        LP.SetBodyColor(body_clr)
+        LP.SetBodyScale(body_scale)
+        LP.SetBodyState(s_thorax,s_head,s_abdomen)
+        n_pts = 100
+        wing_length = 2.0
+        joint_L = np.array([0.0,0.5,0.0])
+        joint_R = np.array([0.0,-0.5,0.0])
+        LE_pt = 0.1
+        TE_pt = -0.2
+
+        Lwing_baseline_ind = 0
+        Rwing_baseline_ind = 1
+        Lwing_stim_ind = 2
+        Rwing_stim_ind = 3
+
+        #SRF
+        theta_L = self.wingkin_SRF_list_means[Lwing_baseline_ind][0,:]
+        eta_L     = self.wingkin_SRF_list_means[Lwing_baseline_ind][1,:]
+        phi_L     = self.wingkin_SRF_list_means[Lwing_baseline_ind][2,:]
+        xi_L     = self.wingkin_SRF_list_means[Lwing_baseline_ind][3,:]
+        theta_R = self.wingkin_SRF_list_means[Lwing_baseline_ind][0,:]
+        eta_R     = self.wingkin_SRF_list_means[Lwing_baseline_ind][1,:]
+        phi_R     = self.wingkin_SRF_list_means[Lwing_baseline_ind][2,:]
+        xi_R     = self.wingkin_SRF_list_means[Lwing_baseline_ind][3,:]
+        n_pts     = xi_R.shape[0]
+
+        #if include forces in this way only including contributions of aerodynamic forces 
+        # aero: FT 456 before conversion to SRF (and scaled by F_scaling), inertial: Lw (not Lb), 
+        #for now only baseline, and L wing 
+
+        Fg = self.mass*self.g
+        FgR = self.mass*self.g*self.R_fly
+    
+        #want instead vel, acc in WRF exclusively (and vel + acc)
+        #acc
+        FX_L_acc     = self.FTI_acc_w_list_means[Lwing_baseline_ind][0,:]*scaling_factor
+        FY_L_acc     = self.FTI_acc_w_list_means[Lwing_baseline_ind][1,:]*scaling_factor
+        FZ_L_acc     = self.FTI_acc_w_list_means[Lwing_baseline_ind][2,:]*scaling_factor
+        FX_R_acc     = self.FTI_acc_w_list_means[Rwing_baseline_ind][0,:]*scaling_factor
+        FY_R_acc     = self.FTI_acc_w_list_means[Rwing_baseline_ind][1,:]*scaling_factor
+        FZ_R_acc     = self.FTI_acc_w_list_means[Rwing_baseline_ind][2,:]*scaling_factor
+
+        #vel
+        FX_L_vel     = self.FTI_vel_w_list_means[Lwing_baseline_ind][0,:]*scaling_factor
+        FY_L_vel     = self.FTI_vel_w_list_means[Lwing_baseline_ind][1,:]*scaling_factor
+        FZ_L_vel     = self.FTI_vel_w_list_means[Lwing_baseline_ind][2,:]*scaling_factor
+        FX_R_vel     = self.FTI_vel_w_list_means[Rwing_baseline_ind][0,:]*scaling_factor
+        FY_R_vel     = self.FTI_vel_w_list_means[Rwing_baseline_ind][1,:]*scaling_factor
+        FZ_R_vel     = self.FTI_vel_w_list_means[Rwing_baseline_ind][2,:]*scaling_factor
+
+        #vel + acc
+        FX_L = FX_L_acc + FX_L_vel
+        FY_L = FY_L_acc + FY_L_vel
+        FZ_L = FZ_L_acc + FZ_L_vel
+        FX_R = FX_R_acc + FX_R_vel
+        FY_R = FY_R_acc + FY_R_vel
+        FZ_R = FZ_R_acc + FZ_R_vel
+        
+        # no mean force 
+        FX_mean = 0.0
+        FY_mean = 0.0
+        FZ_mean = 0.0
+        MX_mean = 0.0
+        MY_mean = 0.0
+        MZ_mean = 0.0
+
+        FX_0     = 0.0
+        FY_0     = 0.0
+        FZ_0     = 0.0
+        MX_0     = 0.0
+        MY_0     = 0.0
+        MZ_0     = 0.0
+
+        
+        # both acc + vel
+        m_clr = (0,0,0)
+        LP.set_srf_angle(self.srf_angle)
+        LP.set_wing_motion_direct(theta_L,eta_L,phi_L,xi_L,theta_R,eta_R,phi_R,xi_R,n_pts)
+        LP.set_forces_direct(FX_L,FY_L,FZ_L,FX_R,FY_R,FZ_R)
+        LP.set_mean_forces(FX_mean,FY_mean,FZ_mean,MX_mean,MY_mean,MZ_mean)
+        LP.set_FT_0(FX_0,FY_0,FZ_0,MX_0,MY_0,MZ_0)
+        Fg = np.array([0.0,0.0,-FZ_0])
+        LP.set_Fg(Fg)
+        FD = np.array([-FX_0,0.0,0.0])
+        LP.set_FD(FD)
+        LP.compute_tip_forces(wing_length,joint_L,joint_R,LE_pt,TE_pt,m_clr,m_clr,m_clr,m_clr, 1,0.0) #include R wing
+        img_width = 1000
+        img_height = 800
+        p_scale = 2.5
+        clip_range = [0,16]
+        cam_pos = [12,0,0]
+        view_up = [0,0,1]
+        
+        forces = '_inertial_forces_WRF_only'
+
+        test_name = exp_name + forces
+        img_name = test_name+'_front.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        cam_pos = [0,12,0]
+        view_up = [0,0,1]
+        img_name = test_name+'_side.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        cam_pos = [0,0,12]
+        view_up = [1,0,0]
+        img_name = test_name+'_top.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        clip_range = [0,16]
+        cam_pos = [-12,0,0]
+        view_up = [0,0,1]
+        img_name = test_name+'_back.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+
+        #vel (red)
+        vel_clr = (1,0,0)
+        LP.set_srf_angle(self.srf_angle)
+        LP.set_wing_motion_direct(theta_L,eta_L,phi_L,xi_L,theta_R,eta_R,phi_R,xi_R,n_pts)
+        LP.set_forces_direct(FX_L_vel,FY_L_vel,FZ_L_vel,FX_R_vel,FY_R_vel,FZ_R_vel)
+        LP.set_mean_forces(FX_mean,FY_mean,FZ_mean,MX_mean,MY_mean,MZ_mean)
+        LP.set_FT_0(FX_0,FY_0,FZ_0,MX_0,MY_0,MZ_0)
+        Fg = np.array([0.0,0.0,-FZ_0])
+        LP.set_Fg(Fg)
+        FD = np.array([-FX_0,0.0,0.0])
+        LP.set_FD(FD)
+        LP.compute_tip_forces(wing_length,joint_L,joint_R,LE_pt,TE_pt,vel_clr,vel_clr,m_clr,m_clr, 1,0.0)
+        img_width = 1000
+        img_height = 800
+        p_scale = 2.5
+        clip_range = [0,16]
+        cam_pos = [12,0,0]
+        view_up = [0,0,1]
+        
+
+        test_name = exp_name + forces
+        img_name = test_name+'_front.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        cam_pos = [0,12,0]
+        view_up = [0,0,1]
+        img_name = test_name+'_side.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        cam_pos = [0,0,12]
+        view_up = [1,0,0]
+        img_name = test_name+'_top.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        clip_range = [0,16]
+        cam_pos = [-12,0,0]
+        view_up = [0,0,1]
+        img_name = test_name+'_back.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+
+        #acc (green)
+        acc_clr = (0,1,0)
+        LP.set_srf_angle(self.srf_angle)
+        LP.set_wing_motion_direct(theta_L,eta_L,phi_L,xi_L,theta_R,eta_R,phi_R,xi_R,n_pts)
+        LP.set_forces_direct(FX_L_acc,FY_L_acc,FZ_L_acc,FX_R_acc,FY_R_acc,FZ_R_acc)
+        LP.set_mean_forces(FX_mean,FY_mean,FZ_mean,MX_mean,MY_mean,MZ_mean)
+        LP.set_FT_0(FX_0,FY_0,FZ_0,MX_0,MY_0,MZ_0)
+        Fg = np.array([0.0,0.0,-FZ_0])
+        LP.set_Fg(Fg)
+        FD = np.array([-FX_0,0.0,0.0])
+        LP.set_FD(FD)
+        LP.compute_tip_forces(wing_length,joint_L,joint_R,LE_pt,TE_pt,acc_clr,acc_clr,m_clr,m_clr, 1,0.0)
+        img_width = 1000
+        img_height = 800
+        p_scale = 2.5
+        clip_range = [0,16]
+        cam_pos = [12,0,0]
+        view_up = [0,0,1]
+        
+
+        test_name = exp_name + forces
+        img_name = test_name+'_front.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        cam_pos = [0,12,0]
+        view_up = [0,0,1]
+        img_name = test_name+'_side.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        cam_pos = [0,0,12]
+        view_up = [1,0,0]
+        img_name = test_name+'_top.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+        clip_range = [0,16]
+        cam_pos = [-12,0,0]
+        view_up = [0,0,1]
+        img_name = test_name+'_back.jpg'
+        LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+
+
+
+
 
     #TODO add R wing, change width of tube?
     def make_lollipop_figure_baseline_and_stim(self,exp_name,save_loc,include_inertial_forces=True, scaling_factor=20):
