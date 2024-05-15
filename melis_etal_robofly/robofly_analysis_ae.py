@@ -6,7 +6,7 @@ import math
 import scipy.io
 import matplotlib
 import matplotlib.pyplot as plt
-from scipy import interpolate, optimize
+from scipy import interpolate, optimize, integrate
 import h5py
 from scipy.special import binom
 
@@ -503,7 +503,8 @@ class RoboAnalysis():
 
 
             for i in range(self.N_pts):
-                
+
+                #these are 90 rot about y axis from thesis defn to account for wing starting aligned to x axis SRF
                 q_phi_L   = np.array([np.cos(self.phi_L[i]/2.0),np.sin(self.phi_L[i]/2.0),0.0,0.0])
                 q_theta_L = np.array([np.cos(-self.theta_L[i]/2.0),0.0,0.0,np.sin(-self.theta_L[i]/2.0)])
                 q_eta_L   = np.array([np.cos(self.eta_L[i]/2.0),0.0,np.sin(self.eta_L[i]/2.0),0.0])
@@ -724,6 +725,276 @@ class RoboAnalysis():
         # FT_m_array[:,2] = np.mean(self.FTI_vel_Lb,axis=1)
         # FT_m_array[:,3] = FT_m_array[:,0]+FT_m_array[:,1]+FT_m_array[:,2]
         # self.FT_mean = FT_m_array
+
+
+    def convert_to_SRF_phi_sin_for_testing(self,beta,phi_shift, wing_side='L', shift_eta=True):
+        """
+        wing_side = 'L' or 'R'
+        testing function to make sure axis in correct orientation, try will different beta 
+        only wing kinematic will be phi which is a sin wave between -90 and 90, all other are 0
+
+        """
+
+        wb_select = ((self.T_fast>=4.0)&(self.T_fast<5.0))
+
+        wb_select_4 = ((self.T_fast>=3.0)&(self.T_fast<4.0))
+        wb_select_5 = ((self.T_fast>=4.0)&(self.T_fast<5.0))
+        wb_select_6 = ((self.T_fast>=5.0)&(self.T_fast<6.0))
+
+        self.N_pts = np.sum(wb_select)
+
+        self.dt = 1.0/(self.N_pts*self.f)[0] #turn from array into single val
+
+        self.t = np.linspace(0,1/self.f,num=self.N_pts)
+
+        # xi_Lt      = np.pi*(self.wingkin_f[wb_select,5]/180.0)
+        # theta_Lt = np.pi*(self.wingkin_f[wb_select,1]/180.0)
+        # eta_Lt      = np.pi*(self.wingkin_f[wb_select,2]/180.0)
+        # phi_Lt      = np.pi*(self.wingkin_f[wb_select,3]/180.0)
+
+
+        #take mean of wb 4,5,6
+        # deg --> rad
+        wb_456 = np.zeros((self.N_pts,13,3))
+        wb_456[:,:,0] = np.pi*(self.wingkin_f[wb_select_4,:]/180.0)
+        wb_456[:,:,1] = np.pi*(self.wingkin_f[wb_select_5,:]/180.0)
+        wb_456[:,:,2] = np.pi*(self.wingkin_f[wb_select_6,:]/180.0)
+        wb_mean = np.mean(wb_456, axis=2)
+
+        if wing_side=='L':
+            
+            tpoints = np.linspace(-np.pi,np.pi, np.shape(wb_mean[:,5])[0])
+            phi_range = np.pi(90/180) #-90 to 90 in rad
+            phi_vals = np.sin(tpoints)*phi_range
+
+            xi_Lt      = np.full(np.shape(wb_mean[:,5])[0], 0)
+            theta_Lt   = np.full(np.shape(wb_mean[:,5])[0], 0)
+            eta_Lt     = np.full(np.shape(wb_mean[:,5])[0], 0)
+            phi_Lt     = phi_vals
+            
+
+
+            if shift_eta==False:
+                self.phi_L,self.theta_L,self.eta_L,self.xi_L = self.euler_angle_shift(phi_Lt,theta_Lt,eta_Lt,xi_Lt,-beta,-phi_shift)
+            if shift_eta==True:
+                self.phi_L,self.theta_L,self.eta_L,self.xi_L = self.euler_angle_shift_shift_eta(phi_Lt,theta_Lt,eta_Lt,xi_Lt,-beta,-phi_shift)
+
+            self.theta_dot_L = np.squeeze(np.gradient(self.theta_L,self.dt,edge_order=2))
+            self.eta_dot_L      = np.squeeze(np.gradient(self.eta_L,self.dt,edge_order=2))
+            self.phi_dot_L      = np.squeeze(np.gradient(self.phi_L,self.dt,edge_order=2))
+
+            self.theta_ddot_L = np.squeeze(np.gradient(self.theta_dot_L,self.dt,edge_order=2))
+            self.eta_ddot_L   = np.squeeze(np.gradient(self.eta_dot_L,self.dt,edge_order=2))
+            self.phi_ddot_L   = np.squeeze(np.gradient(self.phi_dot_L,self.dt,edge_order=2))
+
+            
+            #fig1, axs1 = plt.subplots(3,3)
+            #fig1.set_figwidth(12)
+            #fig1.set_figheight(12)
+            #axs1[0,0].plot(self.t,self.theta_L*(180/np.pi))
+            #axs1[0,1].plot(self.t,self.eta_L*(180/np.pi))
+            #axs1[0,2].plot(self.t,self.phi_L*(180/np.pi))
+            #axs1[1,0].plot(self.t,self.theta_dot_L*(180/np.pi))
+            #axs1[1,1].plot(self.t,self.eta_dot_L*(180/np.pi))
+            #axs1[1,2].plot(self.t,self.phi_dot_L*(180/np.pi))
+            #axs1[2,0].plot(self.t,self.theta_ddot_L*(180/np.pi))
+            #axs1[2,1].plot(self.t,self.eta_ddot_L*(180/np.pi))
+            #axs1[2,2].plot(self.t,self.phi_ddot_L*(180/np.pi))
+
+            cg_cross = np.array([[0,-self.body_cg[2],self.body_cg[1]],[self.body_cg[2],0,-self.body_cg[0]],[-self.body_cg[1],self.body_cg[0],0]])        
+
+            q_beta = np.array([np.cos(self.srf_angle/2.0),0.0,np.sin(self.srf_angle/2.0),0.0])
+
+            R_beta = self.comp_R(q_beta)
+
+            R_90 = np.array([[0,0,1],[0,1,0],[-1,0,0]])
+
+            self.FT_SRF = np.zeros((6,self.N_pts))
+            self.FT_wb_mean_scaled = np.zeros((6,self.N_pts))
+
+            self.wingkin_SRF = np.zeros((4,self.N_pts))
+
+            # Compute angular velocities:
+            self.R_Lw = np.zeros((3,3,self.N_pts))
+            self.w_Lw = np.zeros((3,self.N_pts))
+            self.w_dot_Lw = np.zeros((3,self.N_pts))
+
+            self.FTI_acc_Lw = np.zeros((6,self.N_pts))
+            self.FTI_vel_Lw = np.zeros((6,self.N_pts))
+            self.FTI_acc_Lb = np.zeros((6,self.N_pts))
+            self.FTI_vel_Lb = np.zeros((6,self.N_pts))
+
+            FT_456 = np.zeros((6,self.N_pts,3))
+            FT_456[:,:,0] = self.FT_wing[:,wb_select_4]
+            FT_456[:,:,1] = self.FT_wing[:,wb_select_5]
+            FT_456[:,:,2] = self.FT_wing[:,wb_select_6]
+
+            # self.FT_wb_median = np.mean(FT_456,axis=2)
+            self.FT_wb_mean = np.mean(FT_456,axis=2)
+
+
+            # add scaling
+            self.FT_wb_mean_scaled[0:3,:] = self.FT_wb_mean[0:3,:]*self.F_scaling 
+            self.FT_wb_mean_scaled[3:,:] = self.FT_wb_mean[3:,:]*self.M_scaling
+
+
+            for i in range(self.N_pts):
+
+                #these are 90 rot about y axis from thesis defn to account for wing starting aligned to x axis SRF
+                q_phi_L   = np.array([np.cos(self.phi_L[i]/2.0),np.sin(self.phi_L[i]/2.0),0.0,0.0])
+                q_theta_L = np.array([np.cos(-self.theta_L[i]/2.0),0.0,0.0,np.sin(-self.theta_L[i]/2.0)])
+                q_eta_L   = np.array([np.cos(self.eta_L[i]/2.0),0.0,np.sin(self.eta_L[i]/2.0),0.0])
+                phi_dot_L_vec = np.array([[self.phi_dot_L[i]],[0.0],[0.0]])
+                theta_dot_L_vec = np.array([[0.0],[0.0],[-self.theta_dot_L[i]]])
+                eta_dot_L_vec = np.array([[0.0],[self.eta_dot_L[i]],[0.0]])
+                phi_ddot_L_vec = np.array([[self.phi_ddot_L[i]],[0.0],[0.0]])
+                theta_ddot_L_vec = np.array([[0.0],[0.0],[-self.theta_ddot_L[i]]])
+                eta_ddot_L_vec = np.array([[0.0],[self.eta_ddot_L[i]],[0.0]])
+                q_L = self.q_mult(q_phi_L,self.q_mult(q_theta_L,q_eta_L))
+                R_L = np.transpose(self.comp_R(q_L))
+                self.R_Lw[:,:,i] = R_L
+                self.w_Lw[:,i] = np.squeeze(np.dot(self.comp_R(self.q_mult(q_eta_L,q_theta_L)),phi_dot_L_vec)+np.dot(self.comp_R(q_eta_L),theta_dot_L_vec)+eta_dot_L_vec)
+                self.w_dot_Lw[:,i] = np.squeeze(np.dot(self.comp_R(self.q_mult(q_eta_L,q_theta_L)),phi_ddot_L_vec)+np.dot(self.comp_R(q_eta_L),theta_ddot_L_vec)+eta_ddot_L_vec)
+                
+                R_mat = np.zeros((6,6))
+                R_mat[:3,:3] = np.dot(np.transpose(R_beta),R_L)
+                R_mat[3:,3:] = np.dot(np.transpose(R_beta),R_L)
+
+                # FT_i = self.FT_wb_median[:,i]
+                FT_i = self.FT_wb_mean[:,i]
+
+                self.FT_SRF[:,i] = np.dot(R_mat,FT_i)
+                self.wingkin_SRF[0,i] = self.theta_L[i]
+                self.wingkin_SRF[1,i] = self.eta_L[i]
+                self.wingkin_SRF[2,i] = self.phi_L[i]
+                self.wingkin_SRF[3,i] = self.xi_L[i]
+
+                w_L_cross = np.array([[0.0,-self.w_Lw[2,i],self.w_Lw[1,i]],[self.w_Lw[2,i],0.0,-self.w_Lw[0,i]],[-self.w_Lw[1,i],self.w_Lw[0,i],0.0]])
+
+                self.FTI_acc_Lw[:3,i] = -np.dot(self.MwL[:3,3:],self.w_dot_Lw[:,i])
+                self.FTI_acc_Lw[3:,i] = -np.dot(self.MwL[3:,3:],self.w_dot_Lw[:,i])
+                self.FTI_acc_Lb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_Lw[:3,i])))
+                self.FTI_acc_Lb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_Lw[3:,i])))
+                self.FTI_acc_Lb[3:,i] += np.dot(cg_cross,self.FTI_acc_Lb[:3,i])
+
+                self.FTI_vel_Lw[:3,i] = -np.squeeze(self.wing_L_m*np.dot(w_L_cross,np.dot(w_L_cross,self.wing_L_cg)))
+                self.FTI_vel_Lw[3:,i] = -np.squeeze(np.dot(w_L_cross,np.dot(self.wing_L_I,self.w_Lw[:,i])))
+                self.FTI_vel_Lb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_Lw[:3,i])))
+                self.FTI_vel_Lb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_Lw[3:,i])))
+                self.FTI_vel_Lb[3:,i] += np.dot(cg_cross,self.FTI_vel_Lb[3:,i])
+
+            self.FT_SRF[3:,:] += np.dot(cg_cross,self.FT_SRF[:3,:])
+
+        else: #wing_side ==R
+            tpoints = np.linspace(-np.pi,np.pi, np.shape(wb_mean[:,5])[0])
+            phi_range = np.pi(90/180) #-90 to 90 in rad
+            phi_vals = np.sin(tpoints)*phi_range
+
+            xi_Rt      = np.full(np.shape(wb_mean[:,5])[0], 0)
+            theta_Rt   = np.full(np.shape(wb_mean[:,5])[0], 0)
+            eta_Rt     = np.full(np.shape(wb_mean[:,5])[0], 0)
+            phi_Rt     = phi_vals
+            
+
+            if shift_eta==False:
+                self.phi_R,self.theta_R,self.eta_R,self.xi_R = self.euler_angle_shift(phi_Rt,theta_Rt,eta_Rt,xi_Rt,-beta,-phi_shift)
+            if shift_eta==True:
+                self.phi_R,self.theta_R,self.eta_R,self.xi_R = self.euler_angle_shift_shift_eta(phi_Rt,theta_Rt,eta_Rt,xi_Rt,-beta,-phi_shift)
+
+            self.theta_dot_R = np.squeeze(np.gradient(self.theta_R,self.dt,edge_order=2))
+            self.eta_dot_R      = np.squeeze(np.gradient(self.eta_R,self.dt,edge_order=2))
+            self.phi_dot_R      = np.squeeze(np.gradient(self.phi_R,self.dt,edge_order=2))
+
+            self.theta_ddot_R = np.squeeze(np.gradient(self.theta_dot_R,self.dt,edge_order=2))
+            self.eta_ddot_R   = np.squeeze(np.gradient(self.eta_dot_R,self.dt,edge_order=2))
+            self.phi_ddot_R   = np.squeeze(np.gradient(self.phi_dot_R,self.dt,edge_order=2))
+
+
+            cg_cross = np.array([[0,-self.body_cg[2],self.body_cg[1]],[self.body_cg[2],0,-self.body_cg[0]],[-self.body_cg[1],self.body_cg[0],0]])        
+
+            q_beta = np.array([np.cos(self.srf_angle/2.0),0.0,np.sin(self.srf_angle/2.0),0.0])
+
+            R_beta = self.comp_R(q_beta)
+
+            R_90 = np.array([[0,0,1],[0,1,0],[-1,0,0]])
+
+            self.FT_SRF = np.zeros((6,self.N_pts))
+            self.FT_wb_mean_scaled = np.zeros((6,self.N_pts))
+
+            self.wingkin_SRF = np.zeros((4,self.N_pts))
+
+            # Compute angular velocities:
+            self.R_Rw = np.zeros((3,3,self.N_pts))
+            self.w_Rw = np.zeros((3,self.N_pts))
+            self.w_dot_Rw = np.zeros((3,self.N_pts))
+
+            self.FTI_acc_Rw = np.zeros((6,self.N_pts))
+            self.FTI_vel_Rw = np.zeros((6,self.N_pts))
+            self.FTI_acc_Rb = np.zeros((6,self.N_pts))
+            self.FTI_vel_Rb = np.zeros((6,self.N_pts))
+
+            FT_456 = np.zeros((6,self.N_pts,3))
+            FT_456[:,:,0] = self.FT_wing[:,wb_select_4]
+            FT_456[:,:,1] = self.FT_wing[:,wb_select_5]
+            FT_456[:,:,2] = self.FT_wing[:,wb_select_6]
+
+            # self.FT_wb_median = np.mean(FT_456,axis=2)
+            self.FT_wb_mean = np.mean(FT_456,axis=2)
+
+
+            # add scaling
+            self.FT_wb_mean_scaled[0:3,:] = self.FT_wb_mean[0:3,:]*self.F_scaling 
+            self.FT_wb_mean_scaled[3:,:] = self.FT_wb_mean[3:,:]*self.M_scaling
+
+
+            for i in range(self.N_pts):
+                
+                q_phi_R   = np.array([np.cos(-self.phi_R[i]/2.0),np.sin(-self.phi_R[i]/2.0),0.0,0.0])
+                q_theta_R = np.array([np.cos(self.theta_R[i]/2.0),0.0,0.0,np.sin(self.theta_R[i]/2.0)])
+                q_eta_R   = np.array([np.cos(self.eta_R[i]/2.0),0.0,np.sin(self.eta_R[i]/2.0),0.0])
+                phi_dot_R_vec = np.array([[-self.phi_dot_R[i]],[0.0],[0.0]])
+                theta_dot_R_vec = np.array([[0.0],[0.0],[self.theta_dot_R[i]]])
+                eta_dot_R_vec = np.array([[0.0],[self.eta_dot_R[i]],[0.0]])
+                phi_ddot_R_vec = np.array([[-self.phi_ddot_R[i]],[0.0],[0.0]])
+                theta_ddot_R_vec = np.array([[0.0],[0.0],[self.theta_ddot_R[i]]])
+                eta_ddot_R_vec = np.array([[0.0],[self.eta_ddot_R[i]],[0.0]])
+                q_R = self.q_mult(q_phi_R,self.q_mult(q_theta_R,q_eta_R))
+                R_R = np.transpose(self.comp_R(q_R))
+                self.R_Rw[:,:,i] = R_R
+                self.w_Rw[:,i] = np.squeeze(np.dot(self.comp_R(self.q_mult(q_eta_R,q_theta_R)),phi_dot_R_vec)+np.dot(self.comp_R(q_eta_R),theta_dot_R_vec)+eta_dot_R_vec)
+                self.w_dot_Rw[:,i] = np.squeeze(np.dot(self.comp_R(self.q_mult(q_eta_R,q_theta_R)),phi_ddot_R_vec)+np.dot(self.comp_R(q_eta_R),theta_ddot_R_vec)+eta_ddot_R_vec)
+                
+                R_mat = np.zeros((6,6))
+                R_mat[:3,:3] = np.dot(np.transpose(R_beta),R_R)
+                R_mat[3:,3:] = np.dot(np.transpose(R_beta),R_R)
+
+                # FT_i = self.FT_wb_median[:,i]
+                FT_i = self.FT_wb_mean[:,i]
+
+                self.FT_SRF[:,i] = np.dot(R_mat,FT_i)
+                self.wingkin_SRF[0,i] = self.theta_R[i]
+                self.wingkin_SRF[1,i] = self.eta_R[i]
+                self.wingkin_SRF[2,i] = self.phi_R[i]
+                self.wingkin_SRF[3,i] = self.xi_R[i]
+
+                w_R_cross = np.array([[0.0,-self.w_Rw[2,i],self.w_Rw[1,i]],[self.w_Rw[2,i],0.0,-self.w_Rw[0,i]],[-self.w_Rw[1,i],self.w_Rw[0,i],0.0]])
+
+                self.FTI_acc_Rw[:3,i] = -np.dot(self.MwR[:3,3:],self.w_dot_Rw[:,i])
+                self.FTI_acc_Rw[3:,i] = -np.dot(self.MwR[3:,3:],self.w_dot_Rw[:,i])
+                self.FTI_acc_Rb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_Rw[:3,i])))
+                self.FTI_acc_Rb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_Rw[3:,i])))
+                self.FTI_acc_Rb[3:,i] += np.dot(cg_cross,self.FTI_acc_Rb[:3,i])
+
+                self.FTI_vel_Rw[:3,i] = -np.squeeze(self.wing_R_m*np.dot(w_R_cross,np.dot(w_R_cross,self.wing_R_cg)))
+                self.FTI_vel_Rw[3:,i] = -np.squeeze(np.dot(w_R_cross,np.dot(self.wing_R_I,self.w_Rw[:,i])))
+                self.FTI_vel_Rb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_Rw[:3,i])))
+                self.FTI_vel_Rb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_Rw[3:,i])))
+                self.FTI_vel_Rb[3:,i] += np.dot(cg_cross,self.FTI_vel_Rb[3:,i])
+
+            self.FT_SRF[3:,:] += np.dot(cg_cross,self.FT_SRF[:3,:])
+
+
+
 
     #plotting functions for testing 
     def plot_wing_kinematics_and_forces_breakdown(self, save_location):
@@ -1212,19 +1483,39 @@ class RoboAnalysis():
         # make a second fig with sum(x**2 + y**2 + z**2) for inertial forces (acc and vel) for one wing stroke and see if ==0?
         fig, axs = plt.subplots(1,2)
 
+        #TODO: finish trapezoidal integration 
         #L wing 
-        L_vel = (self.FTI_vel_w_list_means[Lwing_baseline_ind][0,:])**2 + (self.FTI_vel_w_list_means[Lwing_baseline_ind][1,:])**2 + (self.FTI_vel_w_list_means[Lwing_baseline_ind][2,:])**2
-        L_acc = (self.FTI_acc_w_list_means[Lwing_baseline_ind][0,:])**2 + (self.FTI_acc_w_list_means[Lwing_baseline_ind][1,:])**2 + (self.FTI_acc_w_list_means[Lwing_baseline_ind][2,:])**2
-        axs[0].scatter(1, np.sum(L_vel + L_acc), color='k')
-        print(f'sum(x**2 + y**2 + z**2) for inertial forces (acc and vel) L wing: {np.sum(L_vel + L_acc)}')
-        axs[0].set_title('sum(x**2 + y**2 + z**2)\nfor inertial forces (acc and vel) \nL wing')
+        #vel
+        L_vel_x = integrate.trapezoid(self.FTI_vel_w_list_means[Lwing_baseline_ind][0,:], t_baseline)#x
+        L_vel_y = integrate.trapezoid(self.FTI_vel_w_list_means[Lwing_baseline_ind][1,:], t_baseline)#y
+        L_vel_z = integrate.trapezoid(self.FTI_vel_w_list_means[Lwing_baseline_ind][2,:], t_baseline)#z
+        #acc
+        L_acc_x = integrate.trapezoid(self.FTI_acc_w_list_means[Lwing_baseline_ind][0,:], t_baseline)
+        L_acc_y = integrate.trapezoid(self.FTI_acc_w_list_means[Lwing_baseline_ind][1,:], t_baseline)
+        L_acc_z = integrate.trapezoid(self.FTI_acc_w_list_means[Lwing_baseline_ind][2,:], t_baseline)
+
+        axs[0].scatter(0, np.sum(L_vel_x + L_vel_y + L_vel_z), color='r', label='velocity')
+        axs[0].scatter(1, np.sum(L_acc_x + L_acc_y + L_acc_z), color='g', label='acc')
+        axs[0].legend(loc='upper right')
+        print(f'sum(integration(x), int(y), int(z)) for vel inertial forces L wing: {np.sum(L_vel_x + L_vel_y + L_vel_z)}')
+        print(f'sum(integration(x), int(y), int(z)) for acc inertial forces L wing: {np.sum(L_acc_x + L_acc_y + L_acc_z)}')
+        axs[0].set_title('sum(integration(x), int(y), int(z))\nfor inertial forces\nL wing')
         
 
         #R wing 
-        R_vel = (self.FTI_vel_w_list_means[Rwing_baseline_ind][0,:])**2 + (self.FTI_vel_w_list_means[Rwing_baseline_ind][1,:])**2 + (self.FTI_vel_w_list_means[Rwing_baseline_ind][2,:])**2
-        R_acc = (self.FTI_acc_w_list_means[Rwing_baseline_ind][0,:])**2 + (self.FTI_acc_w_list_means[Rwing_baseline_ind][1,:])**2 + (self.FTI_acc_w_list_means[Rwing_baseline_ind][2,:])**2
-        axs[1].scatter(1, np.sum(R_vel + R_acc), color='k')
-        print(f'sum(x**2 + y**2 + z**2) for inertial forces (acc and vel) R wing: {np.sum(R_vel + R_acc)}')
+        #vel
+        R_vel_x = integrate.trapezoid(self.FTI_vel_w_list_means[Rwing_baseline_ind][0,:], t_baseline)#x
+        R_vel_y = integrate.trapezoid(self.FTI_vel_w_list_means[Rwing_baseline_ind][1,:], t_baseline)#y
+        R_vel_z = integrate.trapezoid(self.FTI_vel_w_list_means[Rwing_baseline_ind][2,:], t_baseline)#z
+        #acc
+        R_acc_x = integrate.trapezoid(self.FTI_acc_w_list_means[Rwing_baseline_ind][0,:], t_baseline)
+        R_acc_y = integrate.trapezoid(self.FTI_acc_w_list_means[Rwing_baseline_ind][1,:], t_baseline)
+        R_acc_z = integrate.trapezoid(self.FTI_acc_w_list_means[Rwing_baseline_ind][2,:], t_baseline)
+
+        axs[1].scatter(0, np.sum(R_vel_x + R_vel_y + R_vel_z), color='r', label='velocity')
+        axs[1].scatter(1, np.sum(R_acc_x + R_acc_y + R_acc_z), color='g', label='acc')
+        print(f'sum(integration(x), int(y), int(z)) for vel inertial forces R wing: {np.sum(R_vel_x + R_vel_y + R_vel_z)}')
+        print(f'sum(integration(x), int(y), int(z)) for acc inertial forces R wing: {np.sum(R_acc_x + R_acc_y + R_acc_z)}')
         axs[1].set_title('\n\nR wing')
 
         fig.set_size_inches(4,2)
@@ -1554,7 +1845,8 @@ class RoboAnalysis():
         img_name = test_name+'_back.jpg'
         LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
 
-    def make_lollipop_figure_baseline_and_stim(self,exp_name,save_loc,include_inertial_forces=True):
+    #TODO add R wing, change width of tube?
+    def make_lollipop_figure_baseline_and_stim(self,exp_name,save_loc,include_inertial_forces=True, scaling_factor=20):
         """
         baseline and stim, repeat use only L wing forces for both L and R
         """
@@ -1610,20 +1902,20 @@ class RoboAnalysis():
         
             if include_inertial_forces==True:
                 #already scaled
-                FX_L     = self.FT_total_wing_list_means[i][0,:]*20
-                FY_L     = self.FT_total_wing_list_means[i][1,:]*20
-                FZ_L     = self.FT_total_wing_list_means[i][2,:]*20
-                FX_R     = self.FT_total_wing_list_means[i][0,:]*20
-                FY_R     = self.FT_total_wing_list_means[i][1,:]*20 
-                FZ_R     = self.FT_total_wing_list_means[i][2,:]*20
+                FX_L     = self.FT_total_wing_list_means[i][0,:]* scaling_factor
+                FY_L     = self.FT_total_wing_list_means[i][1,:]* scaling_factor
+                FZ_L     = self.FT_total_wing_list_means[i][2,:]* scaling_factor
+                FX_R     = self.FT_total_wing_list_means[i][0,:]* scaling_factor
+                FY_R     = self.FT_total_wing_list_means[i][1,:]* scaling_factor 
+                FZ_R     = self.FT_total_wing_list_means[i][2,:]* scaling_factor
 
             else:
-                FX_L = self.FT_wb_mean_scaled_list_means[i][0,:]*20
-                FY_L = self.FT_wb_mean_scaled_list_means[i][1,:]*20
-                FZ_L = self.FT_wb_mean_scaled_list_means[i][2,:]*20
-                FX_R = self.FT_wb_mean_scaled_list_means[i][0,:]*20
-                FY_R = self.FT_wb_mean_scaled_list_means[i][1,:]*20
-                FZ_R = self.FT_wb_mean_scaled_list_means[i][2,:]*20
+                FX_L = self.FT_wb_mean_scaled_list_means[i][0,:]* scaling_factor
+                FY_L = self.FT_wb_mean_scaled_list_means[i][1,:]* scaling_factor
+                FZ_L = self.FT_wb_mean_scaled_list_means[i][2,:]* scaling_factor
+                FX_R = self.FT_wb_mean_scaled_list_means[i][0,:]* scaling_factor
+                FY_R = self.FT_wb_mean_scaled_list_means[i][1,:]* scaling_factor
+                FZ_R = self.FT_wb_mean_scaled_list_means[i][2,:]* scaling_factor
 
         
 
@@ -1637,19 +1929,19 @@ class RoboAnalysis():
 
             #if only doing left wing will cause total force to be imbalanced
             if include_inertial_forces==True:
-                FX_mean = ((self.FT_SRF_list_means[i][0,:]*self.F_scaling+self.FTI_acc_b_list_means[i][0,:]+self.FTI_vel_b_list_means[i][0,:])) * 20
-                FY_mean = ((self.FT_SRF_list_means[i][1,:]*self.F_scaling+self.FTI_acc_b_list_means[i][1,:]+self.FTI_vel_b_list_means[i][1,:])) * 20 
-                FZ_mean = ((self.FT_SRF_list_means[i][2,:]*self.F_scaling+self.FTI_acc_b_list_means[i][2,:]+self.FTI_vel_b_list_means[i][2,:])) * 20
-                MX_mean = ((self.FT_SRF_list_means[i][3,:]*self.F_scaling+self.FTI_acc_b_list_means[i][3,:]+self.FTI_vel_b_list_means[i][3,:])) * 20
-                MY_mean = ((self.FT_SRF_list_means[i][4,:]*self.F_scaling+self.FTI_acc_b_list_means[i][4,:]+self.FTI_vel_b_list_means[i][4,:])) * 20
-                MZ_mean = ((self.FT_SRF_list_means[i][5,:]*self.F_scaling+self.FTI_acc_b_list_means[i][5,:]+self.FTI_vel_b_list_means[i][5,:])) * 20
+                FX_mean = ((self.FT_SRF_list_means[i][0,:]*self.F_scaling+self.FTI_acc_b_list_means[i][0,:]+self.FTI_vel_b_list_means[i][0,:])) * scaling_factor
+                FY_mean = ((self.FT_SRF_list_means[i][1,:]*self.F_scaling+self.FTI_acc_b_list_means[i][1,:]+self.FTI_vel_b_list_means[i][1,:])) * scaling_factor 
+                FZ_mean = ((self.FT_SRF_list_means[i][2,:]*self.F_scaling+self.FTI_acc_b_list_means[i][2,:]+self.FTI_vel_b_list_means[i][2,:])) * scaling_factor
+                MX_mean = ((self.FT_SRF_list_means[i][3,:]*self.F_scaling+self.FTI_acc_b_list_means[i][3,:]+self.FTI_vel_b_list_means[i][3,:])) * scaling_factor
+                MY_mean = ((self.FT_SRF_list_means[i][4,:]*self.F_scaling+self.FTI_acc_b_list_means[i][4,:]+self.FTI_vel_b_list_means[i][4,:])) * scaling_factor
+                MZ_mean = ((self.FT_SRF_list_means[i][5,:]*self.F_scaling+self.FTI_acc_b_list_means[i][5,:]+self.FTI_vel_b_list_means[i][5,:])) * scaling_factor
             else:
-                FX_mean = ((self.FT_SRF_list_means[i][0,:]*self.F_scaling)) * 20
-                FY_mean = ((self.FT_SRF_list_means[i][1,:]*self.F_scaling)) * 20 
-                FZ_mean = ((self.FT_SRF_list_means[i][2,:]*self.F_scaling)) * 20
-                MX_mean = ((self.FT_SRF_list_means[i][3,:]*self.F_scaling)) * 20
-                MY_mean = ((self.FT_SRF_list_means[i][4,:]*self.F_scaling)) * 20
-                MZ_mean = ((self.FT_SRF_list_means[i][5,:]*self.F_scaling)) * 20
+                FX_mean = ((self.FT_SRF_list_means[i][0,:]*self.F_scaling)) * scaling_factor
+                FY_mean = ((self.FT_SRF_list_means[i][1,:]*self.F_scaling)) * scaling_factor 
+                FZ_mean = ((self.FT_SRF_list_means[i][2,:]*self.F_scaling)) * scaling_factor
+                MX_mean = ((self.FT_SRF_list_means[i][3,:]*self.F_scaling)) * scaling_factor
+                MY_mean = ((self.FT_SRF_list_means[i][4,:]*self.F_scaling)) * scaling_factor
+                MZ_mean = ((self.FT_SRF_list_means[i][5,:]*self.F_scaling)) * scaling_factor
             
 
 
