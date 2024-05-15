@@ -369,6 +369,8 @@ class Lollipop():
         TE_trace_R = np.zeros((3,self.N_pts))
         FT_list = []
         wt_list = []
+        FT_list_R = [] #RW
+        wt_list_R = [] #RW
         #a_srf = -np.pi*(90.0/180.0)+beta
         #a_srf = -np.pi*(90.0/180.0)+beta
         #a_srf = -np.pi*(55.0/180.0)+beta
@@ -421,10 +423,22 @@ class Lollipop():
                 wt_list.append([wt_trace_L[0,i],wt_trace_L[1,i],wt_trace_L[2,i]])
                 if right_wing_on>0:
                     self.lollipop(lollipop_R,color_R_trace)
+                    FT_i_R = np.array([self.FX_R[i],self.FY_R[i],self.FZ_R[i]])
+                    FT_beta_R = np.dot(R_R,FT_i_R)
+                    FT_list_R.append([FT_beta_R[0],FT_beta_R[1],FT_beta_R[2]])
+                    wt_list_R.append([wt_trace_R[0,i],wt_trace_R[1,i],wt_trace_R[2,i]])
+
         self.tip_trace_L(wt_trace_L,color_L_trace)
         FT_L = np.array(FT_list)
         FT_root_L = np.array(wt_list)
         self.ForceGlyphs(FT_root_L,FT_L,color_L)
+        
+        if right_wing_on>0:
+            self.tip_trace_R(wt_trace_R,color_R_trace)
+            FT_R = np.array(FT_list_R)
+            FT_root_R = np.array(wt_list_R)
+            self.ForceGlyphs(FT_root_R,FT_R,color_R)
+
         FT_mean = np.zeros((2,3))
         FT_mean[0,0] = np.mean(self.FX_mean)
         FT_mean[0,1] = np.mean(self.FY_mean)
@@ -463,7 +477,7 @@ class Lollipop():
         FT_D[0,2] = self.FD[2]
         self.MeanGlyph(FT_0_root,FT_D,self.blue)
         if right_wing_on>0:
-            self.tip_trace_R(wt_trace_R,color_R)
+            self.tip_trace_R(wt_trace_R,color_R_trace)
         # Setup joints:
         j_c = np.array([0.0,0.5,0.0])
         j_r = 0.1
