@@ -2052,7 +2052,7 @@ class RoboAnalysis():
 
 
     #TODO add R wing, change width of tube?
-    def make_lollipop_figure_baseline_and_stim(self,exp_name,save_loc,include_inertial_forces=True, scaling_factor=20):
+    def make_lollipop_figure_baseline_and_stim_Lwing_only(self,exp_name,save_loc,include_inertial_forces=True, scaling_factor=20):
         """
         baseline and stim, repeat use only L wing forces for both L and R
         """
@@ -2148,6 +2148,182 @@ class RoboAnalysis():
                 MX_mean = ((self.FT_SRF_list_means[i][3,:]*self.F_scaling)) * scaling_factor
                 MY_mean = ((self.FT_SRF_list_means[i][4,:]*self.F_scaling)) * scaling_factor
                 MZ_mean = ((self.FT_SRF_list_means[i][5,:]*self.F_scaling)) * scaling_factor
+            
+
+
+            FX_0     = 0.0
+            FY_0     = 0.0
+            FZ_0     = 0.0
+            MX_0     = 0.0
+            MY_0     = 0.0
+            MZ_0     = 0.0
+
+            # totals (body, SRF centric)
+            # FT_SRF_list_means*F_scaling + FTI_vel_Lb_list_means + FTI_acc_Lb_list_means
+
+            LP.set_srf_angle(self.srf_angle)
+            LP.set_wing_motion_direct(theta_L,eta_L,phi_L,xi_L,theta_R,eta_R,phi_R,xi_R,n_pts)
+            LP.set_forces_direct(FX_L,FY_L,FZ_L,FX_R,FY_R,FZ_R)
+            LP.set_mean_forces(FX_mean,FY_mean,FZ_mean,MX_mean,MY_mean,MZ_mean)
+            LP.set_FT_0(FX_0,FY_0,FZ_0,MX_0,MY_0,MZ_0)
+            Fg = np.array([0.0,0.0,-FZ_0])
+            LP.set_Fg(Fg)
+            FD = np.array([-FX_0,0.0,0.0])
+            LP.set_FD(FD)
+            LP.compute_tip_forces(wing_length,joint_L,joint_R,LE_pt,TE_pt,m_clr,m_clr,m_clr_2, m_clr_2,0,0.0)
+            img_width = 1000
+            img_height = 800
+            p_scale = 2.5
+            clip_range = [0,16]
+            cam_pos = [12,0,0]
+            view_up = [0,0,1]
+            if include_inertial_forces==True:
+                forces = '_aero_and_inertial_forces'
+            else:
+                forces = '_aero_only_forces'
+
+            test_name = exp_name + forces
+            img_name = test_name+'_front.jpg'
+            LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+            cam_pos = [0,12,0]
+            view_up = [0,0,1]
+            img_name = test_name+'_side.jpg'
+            LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+            cam_pos = [0,0,12]
+            view_up = [1,0,0]
+            img_name = test_name+'_top.jpg'
+            LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+            clip_range = [0,16]
+            cam_pos = [-12,0,0]
+            view_up = [0,0,1]
+            img_name = test_name+'_back.jpg'
+            LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
+
+    def make_lollipop_figure_baseline_and_stim(self,exp_name,save_loc,include_inertial_forces=True, scaling_factor=20):
+        """
+        baseline and stim, L and R wings
+        """
+        
+        LP = Lollipop()
+        LP.Renderer()
+        LP.ConstructModel(True)
+        s_thorax  = np.array([np.cos((-35.0/180.0)*np.pi/2.0),0.0,np.sin((-35.0/180.0)*np.pi/2.0),0.0,0.0,0.0,0.0])
+        s_head       = np.array([np.cos((-5.0/180.0)*np.pi/2.0),0.0,np.sin((-5.0/180.0)*np.pi/2.0),0.0,0.55,0.0,0.42])
+        s_abdomen = np.array([np.cos((-70.0/180.0)*np.pi/2.0),0.0,np.sin((-70.0/180.0)*np.pi/2.0),0.0,0.0,0.0,-0.1])
+        body_scale = [0.80,0.85,0.90]
+        body_clr = [(0.7,0.7,0.7)]
+        LP.SetBodyColor(body_clr)
+        LP.SetBodyScale(body_scale)
+        LP.SetBodyState(s_thorax,s_head,s_abdomen)
+        n_pts = 100
+        wing_length = 2.0
+        joint_L = np.array([0.0,0.5,0.0])
+        joint_R = np.array([0.0,-0.5,0.0])
+        LE_pt = 0.1
+        TE_pt = -0.2
+
+        # Lwing_baseline_ind = 0
+        # Rwing_baseline_ind = 1
+        # Lwing_stim_ind = 2
+        # Rwing_stim_ind = 3
+
+        for i in [0,2]: #Lwing baseline, Lwing stim
+            if i==0:
+                m_clr = (0.5, 0.5, 0.5) #gray
+                m_clr_2 = (0,0,0) #black
+            else:
+                m_clr = (1.0,0.0,0.0) #red
+                m_clr_2 = (1.0,0.0,0.0)
+
+            #SRF
+            theta_L = self.wingkin_SRF_list_means[i][0,:]
+            eta_L     = self.wingkin_SRF_list_means[i][1,:]
+            phi_L     = self.wingkin_SRF_list_means[i][2,:]
+            xi_L     = self.wingkin_SRF_list_means[i][3,:]
+            theta_R = self.wingkin_SRF_list_means[i+1][0,:]
+            eta_R     = self.wingkin_SRF_list_means[i+1][1,:]
+            phi_R     = self.wingkin_SRF_list_means[i+1][2,:]
+            xi_R     = self.wingkin_SRF_list_means[i+1][3,:]
+            n_pts     = xi_R.shape[0]
+
+            #if include forces in this way only including contributions of aerodynamic forces 
+            # aero: FT 456 before conversion to SRF (and scaled by F_scaling), inertial: Lw (not Lb), 
+        
+            Fg = self.mass*self.g
+            FgR = self.mass*self.g*self.R_fly
+        
+            if include_inertial_forces==True:
+                #already scaled
+                FX_L     = self.FT_total_wing_list_means[i][0,:]* scaling_factor
+                FY_L     = self.FT_total_wing_list_means[i][1,:]* scaling_factor
+                FZ_L     = self.FT_total_wing_list_means[i][2,:]* scaling_factor
+                FX_R     = self.FT_total_wing_list_means[i+1][0,:]* scaling_factor
+                FY_R     = self.FT_total_wing_list_means[i+1][1,:]* scaling_factor 
+                FZ_R     = self.FT_total_wing_list_means[i+1][2,:]* scaling_factor
+
+            else:
+                FX_L = self.FT_wb_mean_scaled_list_means[i][0,:]* scaling_factor
+                FY_L = self.FT_wb_mean_scaled_list_means[i][1,:]* scaling_factor
+                FZ_L = self.FT_wb_mean_scaled_list_means[i][2,:]* scaling_factor
+                FX_R = self.FT_wb_mean_scaled_list_means[i+1][0,:]* scaling_factor
+                FY_R = self.FT_wb_mean_scaled_list_means[i+1][1,:]* scaling_factor
+                FZ_R = self.FT_wb_mean_scaled_list_means[i+1][2,:]* scaling_factor
+
+        
+
+            # likely will be FT SRF (aero)*scaler + Lb (inertia) (not scaled yet) - believe need full trace and lollipop function will take mean
+            # FX_mean = 0.0
+            # FY_mean = 0.0
+            # FZ_mean = 0.0
+            # MX_mean = 0.0
+            # MY_mean = 0.0
+            # MZ_mean = 0.0
+
+            #SRF not scaled yet
+            if include_inertial_forces==True:
+                FX_mean_L = ((self.FT_SRF_list_means[i][0,:]*self.F_scaling+self.FTI_acc_b_list_means[i][0,:]+self.FTI_vel_b_list_means[i][0,:])) * scaling_factor
+                FY_mean_L = ((self.FT_SRF_list_means[i][1,:]*self.F_scaling+self.FTI_acc_b_list_means[i][1,:]+self.FTI_vel_b_list_means[i][1,:])) * scaling_factor 
+                FZ_mean_L = ((self.FT_SRF_list_means[i][2,:]*self.F_scaling+self.FTI_acc_b_list_means[i][2,:]+self.FTI_vel_b_list_means[i][2,:])) * scaling_factor
+                MX_mean_L = ((self.FT_SRF_list_means[i][3,:]*self.M_scaling+self.FTI_acc_b_list_means[i][3,:]+self.FTI_vel_b_list_means[i][3,:])) * scaling_factor
+                MY_mean_L = ((self.FT_SRF_list_means[i][4,:]*self.M_scaling+self.FTI_acc_b_list_means[i][4,:]+self.FTI_vel_b_list_means[i][4,:])) * scaling_factor
+                MZ_mean_L = ((self.FT_SRF_list_means[i][5,:]*self.M_scaling+self.FTI_acc_b_list_means[i][5,:]+self.FTI_vel_b_list_means[i][5,:])) * scaling_factor
+
+                FX_mean_R = ((self.FT_SRF_list_means[i+1][0,:]*self.F_scaling+self.FTI_acc_b_list_means[i+1][0,:]+self.FTI_vel_b_list_means[i+1][0,:])) * scaling_factor
+                FY_mean_R = ((self.FT_SRF_list_means[i+1][1,:]*self.F_scaling+self.FTI_acc_b_list_means[i+1][1,:]+self.FTI_vel_b_list_means[i+1][1,:])) * scaling_factor 
+                FZ_mean_R = ((self.FT_SRF_list_means[i+1][2,:]*self.F_scaling+self.FTI_acc_b_list_means[i+1][2,:]+self.FTI_vel_b_list_means[i+1][2,:])) * scaling_factor
+                MX_mean_R = ((self.FT_SRF_list_means[i+1][3,:]*self.M_scaling+self.FTI_acc_b_list_means[i+1][3,:]+self.FTI_vel_b_list_means[i+1][3,:])) * scaling_factor
+                MY_mean_R = ((self.FT_SRF_list_means[i+1][4,:]*self.M_scaling+self.FTI_acc_b_list_means[i+1][4,:]+self.FTI_vel_b_list_means[i+1][4,:])) * scaling_factor
+                MZ_mean_R = ((self.FT_SRF_list_means[i+1][5,:]*self.M_scaling+self.FTI_acc_b_list_means[i+1][5,:]+self.FTI_vel_b_list_means[i+1][5,:])) * scaling_factor
+
+                FX_mean = (FX_mean_L + FX_mean_R) / 2
+                FY_mean = (FY_mean_L + FY_mean_R) / 2
+                FZ_mean = (FZ_mean_L + FZ_mean_R) / 2
+                MX_mean = (MX_mean_L + MX_mean_R) / 2
+                MY_mean = (MY_mean_L + MY_mean_R) / 2
+                MZ_mean = (MZ_mean_L + MZ_mean_R) / 2
+                
+
+            else:
+                FX_mean_L = ((self.FT_SRF_list_means[i][0,:]*self.F_scaling)) * scaling_factor
+                FY_mean_L = ((self.FT_SRF_list_means[i][1,:]*self.F_scaling)) * scaling_factor 
+                FZ_mean_L = ((self.FT_SRF_list_means[i][2,:]*self.F_scaling)) * scaling_factor
+                MX_mean_L = ((self.FT_SRF_list_means[i][3,:]*self.M_scaling)) * scaling_factor
+                MY_mean_L = ((self.FT_SRF_list_means[i][4,:]*self.M_scaling)) * scaling_factor
+                MZ_mean_L = ((self.FT_SRF_list_means[i][5,:]*self.M_scaling)) * scaling_factor
+
+                FX_mean_R = ((self.FT_SRF_list_means[i+1][0,:]*self.F_scaling)) * scaling_factor
+                FY_mean_R = ((self.FT_SRF_list_means[i+1][1,:]*self.F_scaling)) * scaling_factor 
+                FZ_mean_R = ((self.FT_SRF_list_means[i+1][2,:]*self.F_scaling)) * scaling_factor
+                MX_mean_R = ((self.FT_SRF_list_means[i+1][3,:]*self.M_scaling)) * scaling_factor
+                MY_mean_R = ((self.FT_SRF_list_means[i+1][4,:]*self.M_scaling)) * scaling_factor
+                MZ_mean_R = ((self.FT_SRF_list_means[i+1][5,:]*self.M_scaling)) * scaling_factor
+
+                FX_mean = (FX_mean_L + FX_mean_R) / 2
+                FY_mean = (FY_mean_L + FY_mean_R) / 2
+                FZ_mean = (FZ_mean_L + FZ_mean_R) / 2
+                MX_mean = (MX_mean_L + MX_mean_R) / 2
+                MY_mean = (MY_mean_L + MY_mean_R) / 2
+                MZ_mean = (MZ_mean_L + MZ_mean_R) / 2
             
 
 
