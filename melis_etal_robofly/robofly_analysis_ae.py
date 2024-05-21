@@ -294,10 +294,10 @@ class RoboAnalysis():
         # FT wing:
         self.FT_wing_list.append(self.FT_wing)
         # Inertia:
-        self.FTI_vel_w_list.append(self.FTI_vel_Lw)
-        self.FTI_acc_w_list.append(self.FTI_acc_Lw)
-        self.FTI_vel_b_list.append(self.FTI_vel_Lb)
-        self.FTI_acc_b_list.append(self.FTI_acc_Lb)
+        self.FTI_vel_w_list.append(self.FTI_vel_w)
+        self.FTI_acc_w_list.append(self.FTI_acc_w)
+        self.FTI_vel_b_list.append(self.FTI_vel_b)
+        self.FTI_acc_b_list.append(self.FTI_acc_b)
         self.FT_wb_mean_list.append(self.FT_wb_mean) # not scaled yet
         self.FT_wb_mean_scaled_list.append(self.FT_wb_mean_scaled) #scaled
 
@@ -349,10 +349,10 @@ class RoboAnalysis():
         self.FT_SRF_list_means.append(self.FT_SRF)
         self.wingkin_SRF_list_means.append(self.wingkin_SRF)
         #inertia terms 
-        self.FTI_vel_w_list_means.append(self.FTI_vel_Lw)
-        self.FTI_acc_w_list_means.append(self.FTI_acc_Lw)
-        self.FTI_vel_b_list_means.append(self.FTI_vel_Lb)
-        self.FTI_acc_b_list_means.append(self.FTI_acc_Lb)
+        self.FTI_vel_w_list_means.append(self.FTI_vel_w)
+        self.FTI_acc_w_list_means.append(self.FTI_acc_w)
+        self.FTI_vel_b_list_means.append(self.FTI_vel_b)
+        self.FTI_acc_b_list_means.append(self.FTI_acc_b)
 
         # FT wb
         # self.FT_wb_5_list_means.append(self.FT_wb_5)
@@ -364,7 +364,7 @@ class RoboAnalysis():
         
         self.FT_wb_mean_list_means.append(self.FT_wb_mean) #not scaled yet!
         self.FT_wb_mean_scaled_list_means.append(self.FT_wb_mean_scaled)
-        FT_total = (self.FTI_vel_Lw+self.FTI_acc_Lw+self.FT_wb_mean_scaled)
+        FT_total = (self.FTI_vel_w+self.FTI_acc_w+self.FT_wb_mean_scaled)
 
         self.FT_total_wing_list_means.append(FT_total)
 
@@ -398,10 +398,11 @@ class RoboAnalysis():
         eta_n      = -eta-(xi_n/3) 
         return phi_n,theta_n,eta_n,xi_n
 
-    #need to add in right wing?, do anything different for aero forces with right wing?
-    def convert_to_SRF(self,beta,phi_shift, wing_side='L', shift_eta=True):
+    
+    def convert_to_SRF(self,beta,phi_shift, wing_side='L', shift_eta=True, flip_Rwing_force_signs=True):
         """
         wing_side = 'L' or 'R'
+        flip_Rwing_force_signs: if true will flip force sign for asymetric forces Fy, Mx, Mz
         """
 
         wb_select = ((self.T_fast>=4.0)&(self.T_fast<5.0))
@@ -483,10 +484,10 @@ class RoboAnalysis():
             self.w_Lw = np.zeros((3,self.N_pts))
             self.w_dot_Lw = np.zeros((3,self.N_pts))
 
-            self.FTI_acc_Lw = np.zeros((6,self.N_pts))
-            self.FTI_vel_Lw = np.zeros((6,self.N_pts))
-            self.FTI_acc_Lb = np.zeros((6,self.N_pts))
-            self.FTI_vel_Lb = np.zeros((6,self.N_pts))
+            self.FTI_acc_w = np.zeros((6,self.N_pts))
+            self.FTI_vel_w = np.zeros((6,self.N_pts))
+            self.FTI_acc_b = np.zeros((6,self.N_pts))
+            self.FTI_vel_b = np.zeros((6,self.N_pts))
 
             FT_456 = np.zeros((6,self.N_pts,3))
             FT_456[:,:,0] = self.FT_wing[:,wb_select_4]
@@ -535,17 +536,17 @@ class RoboAnalysis():
 
                 w_L_cross = np.array([[0.0,-self.w_Lw[2,i],self.w_Lw[1,i]],[self.w_Lw[2,i],0.0,-self.w_Lw[0,i]],[-self.w_Lw[1,i],self.w_Lw[0,i],0.0]])
 
-                self.FTI_acc_Lw[:3,i] = -np.dot(self.MwL[:3,3:],self.w_dot_Lw[:,i])
-                self.FTI_acc_Lw[3:,i] = -np.dot(self.MwL[3:,3:],self.w_dot_Lw[:,i])
-                self.FTI_acc_Lb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_Lw[:3,i])))
-                self.FTI_acc_Lb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_Lw[3:,i])))
-                self.FTI_acc_Lb[3:,i] += np.dot(cg_cross,self.FTI_acc_Lb[:3,i])
+                self.FTI_acc_w[:3,i] = -np.dot(self.MwL[:3,3:],self.w_dot_Lw[:,i])
+                self.FTI_acc_w[3:,i] = -np.dot(self.MwL[3:,3:],self.w_dot_Lw[:,i])
+                self.FTI_acc_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_w[:3,i])))
+                self.FTI_acc_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_w[3:,i])))
+                self.FTI_acc_b[3:,i] += np.dot(cg_cross,self.FTI_acc_b[:3,i])
 
-                self.FTI_vel_Lw[:3,i] = -np.squeeze(self.wing_L_m*np.dot(w_L_cross,np.dot(w_L_cross,self.wing_L_cg)))
-                self.FTI_vel_Lw[3:,i] = -np.squeeze(np.dot(w_L_cross,np.dot(self.wing_L_I,self.w_Lw[:,i])))
-                self.FTI_vel_Lb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_Lw[:3,i])))
-                self.FTI_vel_Lb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_Lw[3:,i])))
-                self.FTI_vel_Lb[3:,i] += np.dot(cg_cross,self.FTI_vel_Lb[3:,i])
+                self.FTI_vel_w[:3,i] = -np.squeeze(self.wing_L_m*np.dot(w_L_cross,np.dot(w_L_cross,self.wing_L_cg)))
+                self.FTI_vel_w[3:,i] = -np.squeeze(np.dot(w_L_cross,np.dot(self.wing_L_I,self.w_Lw[:,i])))
+                self.FTI_vel_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_w[:3,i])))
+                self.FTI_vel_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_w[3:,i])))
+                self.FTI_vel_b[3:,i] += np.dot(cg_cross,self.FTI_vel_b[3:,i])
 
             self.FT_SRF[3:,:] += np.dot(cg_cross,self.FT_SRF[:3,:])
 
@@ -588,10 +589,10 @@ class RoboAnalysis():
             self.w_Rw = np.zeros((3,self.N_pts))
             self.w_dot_Rw = np.zeros((3,self.N_pts))
 
-            self.FTI_acc_Rw = np.zeros((6,self.N_pts))
-            self.FTI_vel_Rw = np.zeros((6,self.N_pts))
-            self.FTI_acc_Rb = np.zeros((6,self.N_pts))
-            self.FTI_vel_Rb = np.zeros((6,self.N_pts))
+            self.FTI_acc_w = np.zeros((6,self.N_pts))
+            self.FTI_vel_w = np.zeros((6,self.N_pts))
+            self.FTI_acc_b = np.zeros((6,self.N_pts))
+            self.FTI_vel_b = np.zeros((6,self.N_pts))
 
             FT_456 = np.zeros((6,self.N_pts,3))
             FT_456[:,:,0] = self.FT_wing[:,wb_select_4]
@@ -606,14 +607,32 @@ class RoboAnalysis():
             self.FT_wb_mean_scaled[0:3,:] = self.FT_wb_mean[0:3,:]*self.F_scaling 
             self.FT_wb_mean_scaled[3:,:] = self.FT_wb_mean[3:,:]*self.M_scaling
 
+            #for now: flip sign on FT *wing* forces as well 
+            self.FT_wb_mean[1,:] =  -self.FT_wb_mean[1,:]
+            self.FT_wb_mean[3,:] =  -self.FT_wb_mean[3,:]
+            self.FT_wb_mean[5,:] =  -self.FT_wb_mean[5,:]
 
+            self.FT_wb_mean_scaled[1,:] =  -self.FT_wb_mean_scaled[1,:]
+            self.FT_wb_mean_scaled[3,:] =  -self.FT_wb_mean_scaled[3,:]
+            self.FT_wb_mean_scaled[5,:] =  -self.FT_wb_mean_scaled[5,:]
+            
+
+            
             for i in range(self.N_pts):
                 
-                q_phi_R   = np.array([np.cos(-self.phi_R[i]/2.0),np.sin(-self.phi_R[i]/2.0),0.0,0.0])
-                q_theta_R = np.array([np.cos(self.theta_R[i]/2.0),0.0,0.0,np.sin(self.theta_R[i]/2.0)])
+                if flip_Rwing_force_signs==True: # don't need to flip angles, only flip sign after in SRF 
+                    q_phi_R   = np.array([np.cos(self.phi_R[i]/2.0),np.sin(self.phi_R[i]/2.0),0.0,0.0])
+                    q_theta_R = np.array([np.cos(-self.theta_R[i]/2.0),0.0,0.0,np.sin(-self.theta_R[i]/2.0)])
+                    phi_dot_R_vec = np.array([[self.phi_dot_R[i]],[0.0],[0.0]])
+                    theta_dot_R_vec = np.array([[0.0],[0.0],[-self.theta_dot_R[i]]])
+
+                else:
+                    q_phi_R   = np.array([np.cos(-self.phi_R[i]/2.0),np.sin(-self.phi_R[i]/2.0),0.0,0.0])
+                    q_theta_R = np.array([np.cos(self.theta_R[i]/2.0),0.0,0.0,np.sin(self.theta_R[i]/2.0)])
+                    phi_dot_R_vec = np.array([[-self.phi_dot_R[i]],[0.0],[0.0]])
+                    theta_dot_R_vec = np.array([[0.0],[0.0],[self.theta_dot_R[i]]])
+
                 q_eta_R   = np.array([np.cos(self.eta_R[i]/2.0),0.0,np.sin(self.eta_R[i]/2.0),0.0])
-                phi_dot_R_vec = np.array([[-self.phi_dot_R[i]],[0.0],[0.0]])
-                theta_dot_R_vec = np.array([[0.0],[0.0],[self.theta_dot_R[i]]])
                 eta_dot_R_vec = np.array([[0.0],[self.eta_dot_R[i]],[0.0]])
                 phi_ddot_R_vec = np.array([[-self.phi_ddot_R[i]],[0.0],[0.0]])
                 theta_ddot_R_vec = np.array([[0.0],[0.0],[self.theta_ddot_R[i]]])
@@ -639,23 +658,27 @@ class RoboAnalysis():
 
                 w_R_cross = np.array([[0.0,-self.w_Rw[2,i],self.w_Rw[1,i]],[self.w_Rw[2,i],0.0,-self.w_Rw[0,i]],[-self.w_Rw[1,i],self.w_Rw[0,i],0.0]])
 
-                self.FTI_acc_Rw[:3,i] = -np.dot(self.MwR[:3,3:],self.w_dot_Rw[:,i])
-                self.FTI_acc_Rw[3:,i] = -np.dot(self.MwR[3:,3:],self.w_dot_Rw[:,i])
-                self.FTI_acc_Rb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_Rw[:3,i])))
-                self.FTI_acc_Rb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_Rw[3:,i])))
-                self.FTI_acc_Rb[3:,i] += np.dot(cg_cross,self.FTI_acc_Rb[:3,i])
+                self.FTI_acc_w[:3,i] = -np.dot(self.MwR[:3,3:],self.w_dot_Rw[:,i])
+                self.FTI_acc_w[3:,i] = -np.dot(self.MwR[3:,3:],self.w_dot_Rw[:,i])
+                self.FTI_acc_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_w[:3,i])))
+                self.FTI_acc_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_w[3:,i])))
+                self.FTI_acc_b[3:,i] += np.dot(cg_cross,self.FTI_acc_b[:3,i])
 
-                self.FTI_vel_Rw[:3,i] = -np.squeeze(self.wing_R_m*np.dot(w_R_cross,np.dot(w_R_cross,self.wing_R_cg)))
-                self.FTI_vel_Rw[3:,i] = -np.squeeze(np.dot(w_R_cross,np.dot(self.wing_R_I,self.w_Rw[:,i])))
-                self.FTI_vel_Rb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_Rw[:3,i])))
-                self.FTI_vel_Rb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_Rw[3:,i])))
-                self.FTI_vel_Rb[3:,i] += np.dot(cg_cross,self.FTI_vel_Rb[3:,i])
+                self.FTI_vel_w[:3,i] = -np.squeeze(self.wing_R_m*np.dot(w_R_cross,np.dot(w_R_cross,self.wing_R_cg)))
+                self.FTI_vel_w[3:,i] = -np.squeeze(np.dot(w_R_cross,np.dot(self.wing_R_I,self.w_Rw[:,i])))
+                self.FTI_vel_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_w[:3,i])))
+                self.FTI_vel_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_w[3:,i])))
+                self.FTI_vel_b[3:,i] += np.dot(cg_cross,self.FTI_vel_b[3:,i])
+
 
             self.FT_SRF[3:,:] += np.dot(cg_cross,self.FT_SRF[:3,:])
+            #adding sign flips
+            self.FT_SRF[1,:] = -self.FT_SRF[1,:] #FY
+            self.FT_SRF[3,:] = -self.FT_SRF[3,:] #MX
+            self.FT_SRF[5,:] = -self.FT_SRF[5,:] #MZ
 
-
-
-        
+            # dont need to flip inertia
+            
 
 
         # t_ones = np.ones(self.N_pts)
@@ -819,10 +842,10 @@ class RoboAnalysis():
             self.w_Lw = np.zeros((3,self.N_pts))
             self.w_dot_Lw = np.zeros((3,self.N_pts))
 
-            self.FTI_acc_Lw = np.zeros((6,self.N_pts))
-            self.FTI_vel_Lw = np.zeros((6,self.N_pts))
-            self.FTI_acc_Lb = np.zeros((6,self.N_pts))
-            self.FTI_vel_Lb = np.zeros((6,self.N_pts))
+            self.FTI_acc_w = np.zeros((6,self.N_pts))
+            self.FTI_vel_w = np.zeros((6,self.N_pts))
+            self.FTI_acc_b = np.zeros((6,self.N_pts))
+            self.FTI_vel_b = np.zeros((6,self.N_pts))
 
             FT_456 = np.zeros((6,self.N_pts,3))
             FT_456[:,:,0] = self.FT_wing[:,wb_select_4]
@@ -871,17 +894,17 @@ class RoboAnalysis():
 
                 w_L_cross = np.array([[0.0,-self.w_Lw[2,i],self.w_Lw[1,i]],[self.w_Lw[2,i],0.0,-self.w_Lw[0,i]],[-self.w_Lw[1,i],self.w_Lw[0,i],0.0]])
 
-                self.FTI_acc_Lw[:3,i] = -np.dot(self.MwL[:3,3:],self.w_dot_Lw[:,i])
-                self.FTI_acc_Lw[3:,i] = -np.dot(self.MwL[3:,3:],self.w_dot_Lw[:,i])
-                self.FTI_acc_Lb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_Lw[:3,i])))
-                self.FTI_acc_Lb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_Lw[3:,i])))
-                self.FTI_acc_Lb[3:,i] += np.dot(cg_cross,self.FTI_acc_Lb[:3,i])
+                self.FTI_acc_w[:3,i] = -np.dot(self.MwL[:3,3:],self.w_dot_Lw[:,i])
+                self.FTI_acc_w[3:,i] = -np.dot(self.MwL[3:,3:],self.w_dot_Lw[:,i])
+                self.FTI_acc_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_w[:3,i])))
+                self.FTI_acc_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_acc_w[3:,i])))
+                self.FTI_acc_b[3:,i] += np.dot(cg_cross,self.FTI_acc_b[:3,i])
 
-                self.FTI_vel_Lw[:3,i] = -np.squeeze(self.wing_L_m*np.dot(w_L_cross,np.dot(w_L_cross,self.wing_L_cg)))
-                self.FTI_vel_Lw[3:,i] = -np.squeeze(np.dot(w_L_cross,np.dot(self.wing_L_I,self.w_Lw[:,i])))
-                self.FTI_vel_Lb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_Lw[:3,i])))
-                self.FTI_vel_Lb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_Lw[3:,i])))
-                self.FTI_vel_Lb[3:,i] += np.dot(cg_cross,self.FTI_vel_Lb[3:,i])
+                self.FTI_vel_w[:3,i] = -np.squeeze(self.wing_L_m*np.dot(w_L_cross,np.dot(w_L_cross,self.wing_L_cg)))
+                self.FTI_vel_w[3:,i] = -np.squeeze(np.dot(w_L_cross,np.dot(self.wing_L_I,self.w_Lw[:,i])))
+                self.FTI_vel_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_w[:3,i])))
+                self.FTI_vel_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_L,self.FTI_vel_w[3:,i])))
+                self.FTI_vel_b[3:,i] += np.dot(cg_cross,self.FTI_vel_b[3:,i])
 
             self.FT_SRF[3:,:] += np.dot(cg_cross,self.FT_SRF[:3,:])
 
@@ -928,10 +951,10 @@ class RoboAnalysis():
             self.w_Rw = np.zeros((3,self.N_pts))
             self.w_dot_Rw = np.zeros((3,self.N_pts))
 
-            self.FTI_acc_Rw = np.zeros((6,self.N_pts))
-            self.FTI_vel_Rw = np.zeros((6,self.N_pts))
-            self.FTI_acc_Rb = np.zeros((6,self.N_pts))
-            self.FTI_vel_Rb = np.zeros((6,self.N_pts))
+            self.FTI_acc_w = np.zeros((6,self.N_pts))
+            self.FTI_vel_w = np.zeros((6,self.N_pts))
+            self.FTI_acc_b = np.zeros((6,self.N_pts))
+            self.FTI_vel_b = np.zeros((6,self.N_pts))
 
             FT_456 = np.zeros((6,self.N_pts,3))
             FT_456[:,:,0] = self.FT_wing[:,wb_select_4]
@@ -949,11 +972,15 @@ class RoboAnalysis():
 
             for i in range(self.N_pts):
                 
-                q_phi_R   = np.array([np.cos(-self.phi_R[i]/2.0),np.sin(-self.phi_R[i]/2.0),0.0,0.0])
-                q_theta_R = np.array([np.cos(self.theta_R[i]/2.0),0.0,0.0,np.sin(self.theta_R[i]/2.0)])
+                # q_phi_R   = np.array([np.cos(-self.phi_R[i]/2.0),np.sin(-self.phi_R[i]/2.0),0.0,0.0])
+                q_phi_R   = np.array([np.cos(self.phi_R[i]/2.0),np.sin(self.phi_R[i]/2.0),0.0,0.0])
+                # q_theta_R = np.array([np.cos(self.theta_R[i]/2.0),0.0,0.0,np.sin(self.theta_R[i]/2.0)])
+                q_theta_R = np.array([np.cos(-self.theta_R[i]/2.0),0.0,0.0,np.sin(-self.theta_R[i]/2.0)])
                 q_eta_R   = np.array([np.cos(self.eta_R[i]/2.0),0.0,np.sin(self.eta_R[i]/2.0),0.0])
-                phi_dot_R_vec = np.array([[-self.phi_dot_R[i]],[0.0],[0.0]])
-                theta_dot_R_vec = np.array([[0.0],[0.0],[self.theta_dot_R[i]]])
+                # phi_dot_R_vec = np.array([[-self.phi_dot_R[i]],[0.0],[0.0]])
+                phi_dot_R_vec = np.array([[self.phi_dot_R[i]],[0.0],[0.0]])
+                # theta_dot_R_vec = np.array([[0.0],[0.0],[self.theta_dot_R[i]]])
+                theta_dot_R_vec = np.array([[0.0],[0.0],[-self.theta_dot_R[i]]])
                 eta_dot_R_vec = np.array([[0.0],[self.eta_dot_R[i]],[0.0]])
                 phi_ddot_R_vec = np.array([[-self.phi_ddot_R[i]],[0.0],[0.0]])
                 theta_ddot_R_vec = np.array([[0.0],[0.0],[self.theta_ddot_R[i]]])
@@ -979,19 +1006,25 @@ class RoboAnalysis():
 
                 w_R_cross = np.array([[0.0,-self.w_Rw[2,i],self.w_Rw[1,i]],[self.w_Rw[2,i],0.0,-self.w_Rw[0,i]],[-self.w_Rw[1,i],self.w_Rw[0,i],0.0]])
 
-                self.FTI_acc_Rw[:3,i] = -np.dot(self.MwR[:3,3:],self.w_dot_Rw[:,i])
-                self.FTI_acc_Rw[3:,i] = -np.dot(self.MwR[3:,3:],self.w_dot_Rw[:,i])
-                self.FTI_acc_Rb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_Rw[:3,i])))
-                self.FTI_acc_Rb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_Rw[3:,i])))
-                self.FTI_acc_Rb[3:,i] += np.dot(cg_cross,self.FTI_acc_Rb[:3,i])
+                self.FTI_acc_w[:3,i] = -np.dot(self.MwR[:3,3:],self.w_dot_Rw[:,i])
+                self.FTI_acc_w[3:,i] = -np.dot(self.MwR[3:,3:],self.w_dot_Rw[:,i])
+                self.FTI_acc_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_w[:3,i])))
+                self.FTI_acc_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_acc_w[3:,i])))
+                self.FTI_acc_b[3:,i] += np.dot(cg_cross,self.FTI_acc_b[:3,i])
 
-                self.FTI_vel_Rw[:3,i] = -np.squeeze(self.wing_R_m*np.dot(w_R_cross,np.dot(w_R_cross,self.wing_R_cg)))
-                self.FTI_vel_Rw[3:,i] = -np.squeeze(np.dot(w_R_cross,np.dot(self.wing_R_I,self.w_Rw[:,i])))
-                self.FTI_vel_Rb[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_Rw[:3,i])))
-                self.FTI_vel_Rb[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_Rw[3:,i])))
-                self.FTI_vel_Rb[3:,i] += np.dot(cg_cross,self.FTI_vel_Rb[3:,i])
+                self.FTI_vel_w[:3,i] = -np.squeeze(self.wing_R_m*np.dot(w_R_cross,np.dot(w_R_cross,self.wing_R_cg)))
+                self.FTI_vel_w[3:,i] = -np.squeeze(np.dot(w_R_cross,np.dot(self.wing_R_I,self.w_Rw[:,i])))
+                self.FTI_vel_b[:3,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_w[:3,i])))
+                self.FTI_vel_b[3:,i] = np.squeeze(np.dot(np.transpose(R_beta),np.dot(R_R,self.FTI_vel_w[3:,i])))
+                self.FTI_vel_b[3:,i] += np.dot(cg_cross,self.FTI_vel_b[3:,i])
 
             self.FT_SRF[3:,:] += np.dot(cg_cross,self.FT_SRF[:3,:])
+            #adding sign flips for R wing
+            self.FT_SRF[1,:] = -self.FT_SRF[1,:] #FY
+            self.FT_SRF[3,:] = -self.FT_SRF[3,:] #MX
+            self.FT_SRF[5,:] = -self.FT_SRF[5,:] #MZ
+
+            #don't need to flip inertia
 
 
 
@@ -1705,7 +1738,7 @@ class RoboAnalysis():
 
         return dFT_du
 
-    #TODO test, check scaling with forces, and add total forces > then add stim overlapping 
+    #TODO ADD RIGHT wing instead of just left wing duplicated
     def make_lollipop_figure_baseline(self,exp_name,save_loc,m_clr,include_inertial_forces=True):
         """
         baseline only, repeat use only L wing forces for both L and R
