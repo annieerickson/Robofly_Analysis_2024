@@ -1557,11 +1557,651 @@ class RoboAnalysis():
 
         plt.savefig(save_location + save_name_prepend+ 'L_and_R_wing_inertial_WRF_sum_1_wb.png')
         plt.close()
+
+
+    #
+    def plot_L_and_R_wing_kinematics_and_forces_baseline_stim(self, save_location, include_inertial=True):
+        """"
+        plot left and right wing total forces (FT SRF + Lb inerital) for baseline and stim
+        include wing kinematics
+        keep left and right wing separate for now
+        """
+        Fg = self.mass*self.g
+        FgR = self.mass*self.g*self.R_fly
+
+        
+        fig, axs = plt.subplots(10,2) # baseline breakdown, stim breakdown, mean w/and w/o baseline, mean w/ and w/o stim
+    
+        
+        # L wing, baseline and stim
+        Lwing_baseline_ind = 0
+        Rwing_baseline_ind = 1
+        Lwing_stim_ind = 2
+        Rwing_stim_ind = 3
+
+        t_baseline= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_baseline_ind][0,:])[0])
+        t_baseline_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_baseline_ind][0,:])[0])
+        t_stim= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_stim_ind][0,:])[0])
+        t_stim_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_stim_ind][0,:])[0])
+        
+        if include_inertial==False:
+
+            #baseline 
+
+            #aero force only (SRF) #baseline Lwing
+            axs[0+4,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling/Fg,color='k')
+            axs[1+4,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling/Fg,color='k')
+            axs[2+4,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling/Fg,color='k')
+            axs[3+4,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling/FgR,color='k')
+            axs[4+4,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling/FgR,color='k')
+            axs[5+4,0].plot(t_baseline,self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling/FgR,color='k')
+
+            #aero force only (SRF) #baseline Rwing
+            axs[0+4,1].plot(t_baseline_R,self.FT_SRF_list_means[Rwing_baseline_ind][0,:]*self.F_scaling/Fg,color='k')
+            axs[1+4,1].plot(t_baseline_R,self.FT_SRF_list_means[Rwing_baseline_ind][1,:]*self.F_scaling/Fg,color='k')
+            axs[2+4,1].plot(t_baseline_R,self.FT_SRF_list_means[Rwing_baseline_ind][2,:]*self.F_scaling/Fg,color='k')
+            axs[3+4,1].plot(t_baseline_R,self.FT_SRF_list_means[Rwing_baseline_ind][3,:]*self.M_scaling/FgR,color='k')
+            axs[4+4,1].plot(t_baseline_R,self.FT_SRF_list_means[Rwing_baseline_ind][4,:]*self.M_scaling/FgR,color='k')
+            axs[5+4,1].plot(t_baseline_R,self.FT_SRF_list_means[Rwing_baseline_ind][5,:]*self.M_scaling/FgR,color='k')
+
+            #mean aero only L wing baseline
+            axs[0+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling)/Fg), t_baseline[0], t_baseline[-1], linestyle='--',color='k')
+            axs[1+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling)/Fg), t_baseline[0], t_baseline[-1], linestyle='--',color='k')
+            axs[2+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling)/Fg), t_baseline[0], t_baseline[-1], linestyle='--',color='k')
+            axs[3+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling)/FgR), t_baseline[0], t_baseline[-1], linestyle='--',color='k')
+            axs[4+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling)/FgR), t_baseline[0], t_baseline[-1], linestyle='--',color='k')
+            axs[5+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling)/FgR), t_baseline[0], t_baseline[-1], linestyle='--',color='k')
+
+             #mean aero only R wing baseline
+            axs[0+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][0,:]*self.F_scaling)/Fg),t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[1+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][1,:]*self.F_scaling)/Fg),t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[2+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][2,:]*self.F_scaling)/Fg),t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[3+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][3,:]*self.M_scaling)/FgR),t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[4+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][4,:]*self.M_scaling)/FgR),t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[5+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][5,:]*self.M_scaling)/FgR),t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+
+            #stim 
+            
+            #aero force only (SRF) #stim Lwing
+            axs[0+4,0].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling/Fg,color='r')
+            axs[1+4,0].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling/Fg,color='r')
+            axs[2+4,0].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling/Fg,color='r')
+            axs[3+4,0].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling/FgR,color='r')
+            axs[4+4,0].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling/FgR,color='r')
+            axs[5+4,0].plot(t_stim,self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling/FgR,color='r')
+
+            #aero force only (SRF) #stim Rwing
+            axs[0+4,1].plot(t_stim_R,self.FT_SRF_list_means[Rwing_stim_ind][0,:]*self.F_scaling/Fg,color='r')
+            axs[1+4,1].plot(t_stim_R,self.FT_SRF_list_means[Rwing_stim_ind][1,:]*self.F_scaling/Fg,color='r')
+            axs[2+4,1].plot(t_stim_R,self.FT_SRF_list_means[Rwing_stim_ind][2,:]*self.F_scaling/Fg,color='r')
+            axs[3+4,1].plot(t_stim_R,self.FT_SRF_list_means[Rwing_stim_ind][3,:]*self.M_scaling/FgR,color='r')
+            axs[4+4,1].plot(t_stim_R,self.FT_SRF_list_means[Rwing_stim_ind][4,:]*self.M_scaling/FgR,color='r')
+            axs[5+4,1].plot(t_stim_R,self.FT_SRF_list_means[Rwing_stim_ind][5,:]*self.M_scaling/FgR,color='r')
+
+            #mean aero only L wing stim
+            axs[0+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling)/Fg), t_stim[0], t_stim[-1], linestyle='--',color='r')
+            axs[1+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling)/Fg), t_stim[0], t_stim[-1], linestyle='--',color='r')
+            axs[2+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling)/Fg), t_stim[0], t_stim[-1], linestyle='--',color='r')
+            axs[3+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling)/FgR), t_stim[0], t_stim[-1], linestyle='--',color='r')
+            axs[4+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling)/FgR), t_stim[0], t_stim[-1], linestyle='--',color='r')
+            axs[5+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling)/FgR), t_stim[0], t_stim[-1], linestyle='--',color='r')
+
+             #mean aero only R wing stim
+            axs[0+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][0,:]*self.F_scaling)/Fg),t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[1+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][1,:]*self.F_scaling)/Fg),t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[2+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][2,:]*self.F_scaling)/Fg),t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[3+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][3,:]*self.M_scaling)/FgR),t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[4+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][4,:]*self.M_scaling)/FgR),t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[5+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][5,:]*self.M_scaling)/FgR),t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+
+        
+        else:
+            #baseline
+            #all together baseline Lwing
+            axs[0+4,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][0,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][0,:])/Fg,color='k', label='total')
+            axs[1+4,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][1,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][1,:])/Fg,color='k')
+            axs[2+4,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][2,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][2,:])/Fg,color='k')
+            axs[3+4,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][3,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][3,:])/FgR,color='k')
+            axs[4+4,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][4,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][4,:])/FgR,color='k')
+            axs[5+4,0].plot(t_baseline,(self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][5,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][5,:])/FgR,color='k')
+            
+            #mean total baseline Lwing
+            axs[0+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][0,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][0,:])/Fg),t_baseline[0], t_baseline[-1], linestyle='--', color='k', label='total')
+            axs[1+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][1,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][1,:])/Fg),t_baseline[0], t_baseline[-1], linestyle='--', color='k')
+            axs[2+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][2,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][2,:])/Fg),t_baseline[0], t_baseline[-1], linestyle='--', color='k')
+            axs[3+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][3,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][3,:])/FgR),t_baseline[0], t_baseline[-1], linestyle='--', color='k')
+            axs[4+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][4,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][4,:])/FgR),t_baseline[0], t_baseline[-1], linestyle='--', color='k')
+            axs[5+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_baseline_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_baseline_ind][5,:]+self.FTI_vel_b_list_means[Lwing_baseline_ind][5,:])/FgR),t_baseline[0], t_baseline[-1], linestyle='--', color='k')
+        
+            #all together baseline Rwing
+            axs[0+4,1].plot(t_baseline_R,(self.FT_SRF_list_means[Rwing_baseline_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][0,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][0,:])/Fg,color='k')
+            axs[1+4,1].plot(t_baseline_R,(self.FT_SRF_list_means[Rwing_baseline_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][1,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][1,:])/Fg,color='k')
+            axs[2+4,1].plot(t_baseline_R,(self.FT_SRF_list_means[Rwing_baseline_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][2,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][2,:])/Fg,color='k')
+            axs[3+4,1].plot(t_baseline_R,(self.FT_SRF_list_means[Rwing_baseline_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][3,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][3,:])/FgR,color='k')
+            axs[4+4,1].plot(t_baseline_R,(self.FT_SRF_list_means[Rwing_baseline_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][4,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][4,:])/FgR,color='k')
+            axs[5+4,1].plot(t_baseline_R,(self.FT_SRF_list_means[Rwing_baseline_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][5,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][5,:])/FgR,color='k')
+            
+            #mean total  baseline R wing
+            axs[0+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][0,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][0,:])/Fg), t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k', label='total')
+            axs[1+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][1,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][1,:])/Fg), t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[2+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][2,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][2,:])/Fg), t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[3+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][3,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][3,:])/FgR), t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[4+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][4,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][4,:])/FgR), t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
+            axs[5+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_baseline_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_baseline_ind][5,:]+self.FTI_vel_b_list_means[Rwing_baseline_ind][5,:])/FgR), t_baseline_R[0], t_baseline_R[-1], linestyle='--', color='k')
         
 
+            #stim
+            #all together stim Lwing
+            axs[0+4,0].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][0,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][0,:])/Fg,color='r')
+            axs[1+4,0].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][1,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][1,:])/Fg,color='r')
+            axs[2+4,0].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][2,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][2,:])/Fg,color='r')
+            axs[3+4,0].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][3,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][3,:])/FgR,color='r')
+            axs[4+4,0].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][4,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][4,:])/FgR,color='r')
+            axs[5+4,0].plot(t_stim,(self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][5,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][5,:])/FgR,color='r')
+            
+            #mean total stim Lwing
+            axs[0+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][0,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][0,:])/Fg),t_stim[0], t_stim[-1], linestyle='--', color='r')
+            axs[1+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][1,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][1,:])/Fg),t_stim[0], t_stim[-1], linestyle='--', color='r')
+            axs[2+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][2,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][2,:])/Fg),t_stim[0], t_stim[-1], linestyle='--', color='r')
+            axs[3+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][3,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][3,:])/FgR),t_stim[0], t_stim[-1], linestyle='--', color='r')
+            axs[4+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][4,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][4,:])/FgR),t_stim[0], t_stim[-1], linestyle='--', color='r')
+            axs[5+4,0].hlines(np.mean((self.FT_SRF_list_means[Lwing_stim_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Lwing_stim_ind][5,:]+self.FTI_vel_b_list_means[Lwing_stim_ind][5,:])/FgR),t_stim[0], t_stim[-1], linestyle='--', color='r')
+        
+            #all together stim Rwing
+            axs[0+4,1].plot(t_stim_R,(self.FT_SRF_list_means[Rwing_stim_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][0,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][0,:])/Fg,color='r')
+            axs[1+4,1].plot(t_stim_R,(self.FT_SRF_list_means[Rwing_stim_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][1,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][1,:])/Fg,color='r')
+            axs[2+4,1].plot(t_stim_R,(self.FT_SRF_list_means[Rwing_stim_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][2,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][2,:])/Fg,color='r')
+            axs[3+4,1].plot(t_stim_R,(self.FT_SRF_list_means[Rwing_stim_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][3,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][3,:])/FgR,color='r')
+            axs[4+4,1].plot(t_stim_R,(self.FT_SRF_list_means[Rwing_stim_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][4,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][4,:])/FgR,color='r')
+            axs[5+4,1].plot(t_stim_R,(self.FT_SRF_list_means[Rwing_stim_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][5,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][5,:])/FgR,color='r')
+            
+            #mean total  stim R wing
+            axs[0+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][0,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][0,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][0,:])/Fg), t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[1+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][1,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][1,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][1,:])/Fg), t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[2+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][2,:]*self.F_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][2,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][2,:])/Fg), t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[3+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][3,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][3,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][3,:])/FgR), t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[4+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][4,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][4,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][4,:])/FgR), t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+            axs[5+4,1].hlines(np.mean((self.FT_SRF_list_means[Rwing_stim_ind][5,:]*self.M_scaling+self.FTI_acc_b_list_means[Rwing_stim_ind][5,:]+self.FTI_vel_b_list_means[Rwing_stim_ind][5,:])/FgR), t_stim_R[0], t_stim_R[-1], linestyle='--', color='r')
+        
+        
+        #plot kinematics 
+        #baseline
+        theta_L = self.wingkin_SRF_list_means[Lwing_baseline_ind][0,:]
+        eta_L     = self.wingkin_SRF_list_means[Lwing_baseline_ind][1,:]
+        phi_L     = self.wingkin_SRF_list_means[Lwing_baseline_ind][2,:]
+        xi_L     = self.wingkin_SRF_list_means[Lwing_baseline_ind][3,:]
+        theta_R = self.wingkin_SRF_list_means[Rwing_baseline_ind][0,:]
+        eta_R     = self.wingkin_SRF_list_means[Rwing_baseline_ind][1,:]
+        phi_R     = self.wingkin_SRF_list_means[Rwing_baseline_ind][2,:]
+        xi_R     = self.wingkin_SRF_list_means[Rwing_baseline_ind][3,:]
+        timescale_L_baseline = np.linspace(0,1, xi_L.shape[0])
+        timescale_R_baseline = np.linspace(0,1, xi_R.shape[0])
+
+        axs[0,0].plot(timescale_L_baseline, self.to_deg(phi_L), color='k')
+        axs[1,0].plot(timescale_L_baseline, self.to_deg(theta_L), color='k')
+        axs[2,0].plot(timescale_L_baseline, self.to_deg(eta_L), color='k')
+        axs[3,0].plot(timescale_L_baseline, self.to_deg(xi_L), color='k')
+
+        axs[0,1].plot(timescale_R_baseline, self.to_deg(phi_R), color='k')
+        axs[1,1].plot(timescale_R_baseline, self.to_deg(theta_R), color='k')
+        axs[2,1].plot(timescale_R_baseline, self.to_deg(eta_R), color='k')
+        axs[3,1].plot(timescale_R_baseline, self.to_deg(xi_R), color='k')
+
+        #stim
+        theta_L_stim = self.wingkin_SRF_list_means[Lwing_stim_ind][0,:]
+        eta_L_stim     = self.wingkin_SRF_list_means[Lwing_stim_ind][1,:]
+        phi_L_stim     = self.wingkin_SRF_list_means[Lwing_stim_ind][2,:]
+        xi_L_stim     = self.wingkin_SRF_list_means[Lwing_stim_ind][3,:]
+        theta_R_stim = self.wingkin_SRF_list_means[Rwing_stim_ind][0,:]
+        eta_R_stim     = self.wingkin_SRF_list_means[Rwing_stim_ind][1,:]
+        phi_R_stim     = self.wingkin_SRF_list_means[Rwing_stim_ind][2,:]
+        xi_R_stim     = self.wingkin_SRF_list_means[Rwing_stim_ind][3,:]
+        timescale_L_stim = np.linspace(0,1, xi_L_stim.shape[0])
+        timescale_R_stim = np.linspace(0,1, xi_R_stim.shape[0])
+
+        axs[0,0].plot(timescale_L_stim, self.to_deg(phi_L_stim), color='r')
+        axs[1,0].plot(timescale_L_stim, self.to_deg(theta_L_stim), color='r')
+        axs[2,0].plot(timescale_L_stim, self.to_deg(eta_L_stim), color='r')
+        axs[3,0].plot(timescale_L_stim, self.to_deg(xi_L_stim), color='r')
+
+        axs[0,1].plot(timescale_R_stim, self.to_deg(phi_R_stim), color='r')
+        axs[1,1].plot(timescale_R_stim, self.to_deg(theta_R_stim), color='r')
+        axs[2,1].plot(timescale_R_stim, self.to_deg(eta_R_stim), color='r')
+        axs[3,1].plot(timescale_R_stim, self.to_deg(xi_R_stim), color='r')
+
+
+        axs[0,0].set_title('L wing')
+        axs[0,1].set_title('R wing')
+
+        axs[0+4,0].set_ylabel('Fx*')
+        axs[1+4,0].set_ylabel('Fy*')
+        axs[2+4,0].set_ylabel('Fz*')
+        axs[3+4,0].set_ylabel('Mx*')
+        axs[4+4,0].set_ylabel('My*')
+        axs[5+4,0].set_ylabel('Mz*')
+
+        axs[0,0].set_ylabel(r'$\phi$')
+        axs[1,0].set_ylabel(r'$\theta$')
+        axs[2,0].set_ylabel(r'$\eta$')
+        axs[3,0].set_ylabel(r'$\xi$')
+
+        for i in range(10):
+            for j in range(2):
+                axs[i,j].set_xticks([])
+                axs[i,j].spines['top'].set_visible(False)
+                axs[i,j].spines['right'].set_visible(False)
+                axs[i,j].spines['bottom'].set_visible(False)
+        axs[9,0].set_xticks([0,1])
+        axs[9,0].spines['bottom'].set_visible(True)
+
+
+        for i in range(2):
+            axs[0, i].set_ylim(-80, 100)
+            axs[0, i].set_yticks([-80, 0, 100])
+            axs[1, i].set_ylim(-30, 60) 
+            axs[1, i].set_yticks([-30, 0, 60])
+            axs[2, i].set_ylim(-140, 80)
+            axs[2, i].set_yticks([-140, 0, 80])
+            axs[3, i].set_ylim(-60, 60)
+            axs[3, i].set_yticks([-60, 0, 60])
+        
+
+        for i in range(7,10):
+            for j in range(2):
+                axs[i,j].set_ylim([-2.5,2])
+                axs[i,j].set_yticks([-2,0,2])
+        
+        for i in range(4,7):
+            for j in range(2):
+                axs[i,j].set_ylim([-4,6])
+                axs[i,j].set_yticks([-2,0,2,4])
+                
+
+
+        # for i in range(4,9):
+        #     for j in [2,3]:
+        #         axs[i,j].set_ylim([-1,1])
+
+        
+        fig.align_ylabels(axs[:])
+        fig.set_size_inches(10,20)
+        plt.tight_layout()
+        # plt.show()
+        if include_inertial==True:
+            inertial_term = ''
+        else:
+            inertial_term = '_aero_only'
+
+        plt.savefig(save_location + 'L_and_R_wing_forces_baseline_stim' + inertial_term + '.png')
+
+    def plot_LpR_wing_kinematics_and_forces_baseline_stim(self, save_location, include_inertial=True):
+        """"
+        plot left plus right wing total forces (FT SRF + Lb inerital) for baseline and stim
+        include wing kinematics
+        """
+        Fg = self.mass*self.g
+        FgR = self.mass*self.g*self.R_fly
+
+        
+        fig, axs = plt.subplots(10,1) # baseline breakdown, stim breakdown, mean w/and w/o baseline, mean w/ and w/o stim
+    
+        # L wing, baseline and stim
+        Lwing_baseline_ind = 0
+        # Rwing_baseline_ind = 1
+        Lwing_stim_ind = 2
+        # Rwing_stim_ind = 3
+
+        t_baseline= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_baseline_ind][0,:])[0])
+        # t_baseline_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_baseline_ind][0,:])[0])
+        t_stim= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_stim_ind][0,:])[0])
+        # t_stim_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_stim_ind][0,:])[0])
+
+        if include_inertial==False:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                else:
+                    color='r'
+                    t = t_stim
+                for force in range(6):
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force = self.FT_SRF_list_means[i][force,:]*scaling
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling
+                    axs[force+4].plot(t,(L_force + R_force)/body_scale,color=color)
+                    #add mean force 
+                    axs[force+4].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle='--', color=color)
+
+        else:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                else:
+                    color='r'
+                    t = t_stim
+                for force in range(6):
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force =self.FT_SRF_list_means[i][force,:]*scaling+self.FTI_acc_b_list_means[i][force,:]+self.FTI_vel_b_list_means[i][force,:]
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling+self.FTI_acc_b_list_means[i+1][force,:]+self.FTI_vel_b_list_means[i+1][force,:]
+                    axs[force+4].plot(t,(L_force + R_force)/body_scale,color=color)
+                    #add mean force 
+                    axs[force+4].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle='--', color=color)
+
+
+        #kinematics 
+        angle_dict = {'theta': 0, 'eta': 1, 'phi': 2, 'xi': 3}
+        angle_row_dict = {'theta': 1, 'eta': 2, 'phi': 0, 'xi': 3}
+        
+        for i in [0,2]: #baseline, stim
+            if i==0:
+                color='k'
+                t = t_baseline
+            else:
+                color='r'
+                t = t_stim
+            for angle in angle_dict.keys():
+                L_angle = self.wingkin_SRF_list_means[i][angle_dict[angle],:]
+                R_angle = self.wingkin_SRF_list_means[i+1][angle_dict[angle],:]
+                angle_avg = (L_angle + R_angle)/2
+                t = np.linspace(0,1, angle_avg.shape[0])
+                axs[angle_row_dict[angle]].plot(t, self.to_deg(angle_avg), color=color)
+
+
+        axs[0+4].set_ylabel('Fx*')
+        axs[1+4].set_ylabel('Fy*')
+        axs[2+4].set_ylabel('Fz*')
+        axs[3+4].set_ylabel('Mx*')
+        axs[4+4].set_ylabel('My*')
+        axs[5+4].set_ylabel('Mz*')
+
+        axs[0].set_ylabel(r'$\phi$')
+        axs[1].set_ylabel(r'$\theta$')
+        axs[2].set_ylabel(r'$\eta$')
+        axs[3].set_ylabel(r'$\xi$')
+
+        for i in range(10):
+                axs[i].set_xticks([])
+                axs[i].spines['top'].set_visible(False)
+                axs[i].spines['right'].set_visible(False)
+                axs[i].spines['bottom'].set_visible(False)
+        axs[9].set_xticks([0,1])
+        axs[9].spines['bottom'].set_visible(True)
+
+        axs[0].set_ylim(-80, 100)
+        axs[0].set_yticks([-80, 0, 100])
+        axs[1].set_ylim(-30, 60) 
+        axs[1].set_yticks([-30, 0, 60])
+        axs[2].set_ylim(-140, 80)
+        axs[2].set_yticks([-140, 0, 80])
+        axs[3].set_ylim(-60, 60)
+        axs[3].set_yticks([-60, 0, 60])
+
+        axs[4].set_ylim(-2, 8)
+        axs[4].set_yticks([-1,0,2,4])
+        axs[5].set_ylim(-2.5, 2)
+        axs[5].set_yticks([-1,0,1])
+        axs[6].set_ylim(-2, 10)
+        axs[6].set_yticks([-1,0,2,4])
+        axs[7].set_ylim(-2, 6)
+        axs[7].set_yticks([-1,0,2,4])
+        axs[8].set_ylim(-2, 2)
+        axs[8].set_yticks([-1,0,1])
+        axs[9].set_ylim(-3, 2)
+        axs[9].set_yticks([-1,0,1])
+        
+        
+        fig.align_ylabels(axs[:])
+        fig.set_size_inches(5,20)
+        plt.tight_layout()
+        # plt.show()
+        if include_inertial==True:
+            inertial_term = ''
+        else:
+            inertial_term = '_aero_only'
+
+        plt.savefig(save_location + 'LpR_wing_forces_baseline_stim' + inertial_term + '.png')
+
+
+    def plot_LpR_forces_baseline_stim_vertical(self, save_location, include_inertial=True):
+        """"
+        plot left and right wing total forces (FT SRF + Lb inerital) for baseline and stim
+        does not include wing kinematics
+        """
+        Fg = self.mass*self.g
+        FgR = self.mass*self.g*self.R_fly
+
+        
+        fig, axs = plt.subplots(6,1) # baseline breakdown, stim breakdown, mean w/and w/o baseline, mean w/ and w/o stim
+    
+        # L wing, baseline and stim
+        Lwing_baseline_ind = 0
+        # Rwing_baseline_ind = 1
+        Lwing_stim_ind = 2
+        # Rwing_stim_ind = 3
+
+        t_baseline= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_baseline_ind][0,:])[0])
+        # t_baseline_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_baseline_ind][0,:])[0])
+        t_stim= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_stim_ind][0,:])[0])
+        # t_stim_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_stim_ind][0,:])[0])
+
+        if include_inertial==False:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                else:
+                    color='r'
+                    t = t_stim
+                for force in range(6):
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force = self.FT_SRF_list_means[i][force,:]*scaling
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling
+                    axs[force].plot(t,(L_force + R_force)/body_scale,color=color)
+                    #add mean force 
+                    axs[force].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle='--', color=color)
+
+        else:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                else:
+                    color='r'
+                    t = t_stim
+                for force in range(6):
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force =self.FT_SRF_list_means[i][force,:]*scaling+self.FTI_acc_b_list_means[i][force,:]+self.FTI_vel_b_list_means[i][force,:]
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling+self.FTI_acc_b_list_means[i+1][force,:]+self.FTI_vel_b_list_means[i+1][force,:]
+                    axs[force].plot(t,(L_force + R_force)/body_scale,color=color)
+                    #add mean force 
+                    axs[force].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle='--', color=color)
 
 
 
+        axs[0].set_ylabel('Fx*')
+        axs[1].set_ylabel('Fy*')
+        axs[2].set_ylabel('Fz*')
+        axs[3].set_ylabel('Mx*')
+        axs[4].set_ylabel('My*')
+        axs[5].set_ylabel('Mz*')
+
+
+        for i in range(6):
+                axs[i].set_xticks([])
+                axs[i].spines['top'].set_visible(False)
+                axs[i].spines['right'].set_visible(False)
+                axs[i].spines['bottom'].set_visible(False)
+        axs[5].set_xticks([0,1])
+        axs[5].spines['bottom'].set_visible(True)
+
+
+        axs[0].set_ylim(-2, 8)
+        axs[0].set_yticks([-1,0,2,4])
+        axs[1].set_ylim(-2.5, 2)
+        axs[1].set_yticks([-1,0,1])
+        axs[2].set_ylim(-2, 10)
+        axs[2].set_yticks([-1,0,2,4])
+        axs[3].set_ylim(-2, 6)
+        axs[3].set_yticks([-1,0,2,4])
+        axs[4].set_ylim(-2, 2)
+        axs[4].set_yticks([-1,0,1])
+        axs[5].set_ylim(-3, 2)
+        axs[5].set_yticks([-1,0,1])
+        
+        
+        fig.align_ylabels(axs[:])
+        fig.set_size_inches(5,15)
+        plt.tight_layout()
+        # plt.show()
+        if include_inertial==True:
+            inertial_term = ''
+        else:
+            inertial_term = '_aero_only'
+
+        plt.savefig(save_location + 'LpR_wing_forces_only_baseline_stim_vertical_layout' + inertial_term + '.png')
+
+    def plot_LpR_forces_baseline_stim_horizontal(self, save_location, include_inertial=True):
+        """"
+        plot left and right wing total forces (FT SRF + Lb inerital) for baseline and stim
+        does not include wing kinematics
+        """
+        Fg = self.mass*self.g
+        FgR = self.mass*self.g*self.R_fly
+
+        
+        fig, axs = plt.subplots(3,2) # baseline breakdown, stim breakdown, mean w/and w/o baseline, mean w/ and w/o stim
+    
+        # L wing, baseline and stim
+        Lwing_baseline_ind = 0
+        # Rwing_baseline_ind = 1
+        Lwing_stim_ind = 2
+        # Rwing_stim_ind = 3
+
+        t_baseline= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_baseline_ind][0,:])[0])
+        # t_baseline_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_baseline_ind][0,:])[0])
+        t_stim= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_stim_ind][0,:])[0])
+        # t_stim_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_stim_ind][0,:])[0])
+
+        force_col_dict = {0:0,1:0,2:0,3:1,4:1,5:1}
+        force_row_dict = {0:0,1:1,2:2,3:0,4:1,5:2}
+
+        if include_inertial==False:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                else:
+                    color='r'
+                    t = t_stim
+                for force in range(6):
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force = self.FT_SRF_list_means[i][force,:]*scaling
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling
+                    axs[force_row_dict[force], force_col_dict[force]].plot(t,(L_force + R_force)/body_scale,color=color)
+                    #add mean force 
+                    axs[force_row_dict[force], force_col_dict[force]].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle='--', color=color)
+
+        else:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                else:
+                    color='r'
+                    t = t_stim
+                for force in range(6):
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force =self.FT_SRF_list_means[i][force,:]*scaling+self.FTI_acc_b_list_means[i][force,:]+self.FTI_vel_b_list_means[i][force,:]
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling+self.FTI_acc_b_list_means[i+1][force,:]+self.FTI_vel_b_list_means[i+1][force,:]
+                    axs[force_row_dict[force], force_col_dict[force]].plot(t,(L_force + R_force)/body_scale,color=color)
+                    #add mean force 
+                    axs[force_row_dict[force], force_col_dict[force]].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle='--', color=color)
+
+
+
+        axs[0,0].set_ylabel('Fx*')
+        axs[1,0].set_ylabel('Fy*')
+        axs[2,0].set_ylabel('Fz*')
+        axs[0,1].set_ylabel('Mx*')
+        axs[1,1].set_ylabel('My*')
+        axs[2,1].set_ylabel('Mz*')
+
+
+        for i in range(3):
+            for j in range(2):
+                axs[i,j].set_xticks([])
+                axs[i,j].spines['top'].set_visible(False)
+                axs[i,j].spines['right'].set_visible(False)
+                axs[i,j].spines['bottom'].set_visible(False)
+        axs[2,0].set_xticks([0,1])
+        axs[2,0].spines['bottom'].set_visible(True)
+
+
+        axs[0,0].set_ylim(-2, 8)
+        axs[0,0].set_yticks([-1,0,2,4])
+        axs[1,0].set_ylim(-2.5, 2)
+        axs[1,0].set_yticks([-1,0,1])
+        axs[2,0].set_ylim(-2, 10)
+        axs[2,0].set_yticks([-1,0,2,4])
+        axs[0,1].set_ylim(-2, 6)
+        axs[0,1].set_yticks([-1,0,2,4])
+        axs[1,1].set_ylim(-2, 2)
+        axs[1,1].set_yticks([-1,0,1])
+        axs[2,1].set_ylim(-3, 2)
+        axs[2,1].set_yticks([-1,0,1])
+        
+        
+        fig.align_ylabels(axs[:])
+        fig.set_size_inches(10,7)
+        plt.tight_layout()
+        # plt.show()
+        if include_inertial==True:
+            inertial_term = ''
+        else:
+            inertial_term = '_aero_only'
+
+        plt.savefig(save_location + 'LpR_wing_forces_only_baseline_stim_horizontal_layout' + inertial_term + '.png')
+          
+
+        
+        
 
 
     def get_L_R_fnames_avg(self, file_name_list, period='baseline', naming_scheme='new'):
@@ -2232,7 +2872,7 @@ class RoboAnalysis():
             img_name = test_name+'_back.jpg'
             LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
 
-    def make_lollipop_figure_baseline_and_stim(self,exp_name,save_loc,include_inertial_forces=True, scaling_factor=20):
+    def make_lollipop_figure_baseline_and_stim(self,exp_name,save_loc,include_inertial_forces=True, scaling_factor=20, scaling_factor_wingtip=40, plot_wingtip_forces=True, plot_mean_forces=True, plot_lollipops=True, Rwing_on=False):
         """
         baseline and stim, L and R wings
         """
@@ -2287,20 +2927,20 @@ class RoboAnalysis():
         
             if include_inertial_forces==True:
                 #already scaled
-                FX_L     = self.FT_total_wing_list_means[i][0,:]* scaling_factor
-                FY_L     = self.FT_total_wing_list_means[i][1,:]* scaling_factor
-                FZ_L     = self.FT_total_wing_list_means[i][2,:]* scaling_factor
-                FX_R     = self.FT_total_wing_list_means[i+1][0,:]* scaling_factor
-                FY_R     = self.FT_total_wing_list_means[i+1][1,:]* scaling_factor 
-                FZ_R     = self.FT_total_wing_list_means[i+1][2,:]* scaling_factor
+                FX_L     = self.FT_total_wing_list_means[i][0,:]* scaling_factor_wingtip
+                FY_L     = self.FT_total_wing_list_means[i][1,:]* scaling_factor_wingtip
+                FZ_L     = self.FT_total_wing_list_means[i][2,:]* scaling_factor_wingtip
+                FX_R     = self.FT_total_wing_list_means[i+1][0,:]* scaling_factor_wingtip
+                FY_R     = self.FT_total_wing_list_means[i+1][1,:]* scaling_factor_wingtip 
+                FZ_R     = self.FT_total_wing_list_means[i+1][2,:]* scaling_factor_wingtip
 
             else:
-                FX_L = self.FT_wb_mean_scaled_list_means[i][0,:]* scaling_factor
-                FY_L = self.FT_wb_mean_scaled_list_means[i][1,:]* scaling_factor
-                FZ_L = self.FT_wb_mean_scaled_list_means[i][2,:]* scaling_factor
-                FX_R = self.FT_wb_mean_scaled_list_means[i+1][0,:]* scaling_factor
-                FY_R = self.FT_wb_mean_scaled_list_means[i+1][1,:]* scaling_factor
-                FZ_R = self.FT_wb_mean_scaled_list_means[i+1][2,:]* scaling_factor
+                FX_L = self.FT_wb_mean_scaled_list_means[i][0,:]* scaling_factor_wingtip
+                FY_L = self.FT_wb_mean_scaled_list_means[i][1,:]* scaling_factor_wingtip
+                FZ_L = self.FT_wb_mean_scaled_list_means[i][2,:]* scaling_factor_wingtip
+                FX_R = self.FT_wb_mean_scaled_list_means[i+1][0,:]* scaling_factor_wingtip
+                FY_R = self.FT_wb_mean_scaled_list_means[i+1][1,:]* scaling_factor_wingtip
+                FZ_R = self.FT_wb_mean_scaled_list_means[i+1][2,:]* scaling_factor_wingtip
 
         
 
@@ -2379,7 +3019,7 @@ class RoboAnalysis():
             LP.set_Fg(Fg)
             FD = np.array([-FX_0,0.0,0.0])
             LP.set_FD(FD)
-            LP.compute_tip_forces(wing_length,joint_L,joint_R,LE_pt,TE_pt,m_clr,m_clr,m_clr_2, m_clr_2,0,0.0)
+            LP.compute_tip_forces_custom(wing_length,joint_L,joint_R,LE_pt,TE_pt,m_clr,m_clr,m_clr_2, m_clr_2,Rwing_on,0.0, plot_wingtip_forces=plot_wingtip_forces, plot_mean_forces=plot_mean_forces, plot_lollipops=plot_lollipops)
             img_width = 1000
             img_height = 800
             p_scale = 2.5
@@ -2391,7 +3031,23 @@ class RoboAnalysis():
             else:
                 forces = '_aero_only_forces'
 
-            test_name = exp_name + forces
+            if plot_wingtip_forces==True:
+                wingtip_forces = '_wingtip_forces_'
+            else:
+                wingtip_forces = ''
+
+            if plot_mean_forces==True:
+                mean_vector = '_mean_force_vector_'
+            else:
+                mean_vector = ''
+                
+            if plot_lollipops==True:
+                lollipop = '_lollipops'
+            else:
+                lollipop = ''
+            
+
+            test_name = exp_name + forces + wingtip_forces + mean_vector + lollipop
             img_name = test_name+'_front.jpg'
             LP.take_image(img_width,img_height,p_scale,cam_pos,clip_range,view_up,save_loc,img_name)
             cam_pos = [0,12,0]

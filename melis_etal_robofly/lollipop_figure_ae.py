@@ -485,6 +485,146 @@ class Lollipop():
         self.arm(j_c,FT_0_root[0,:],0.015,self.grey)
         self.arm(j_c,FT_mean_root[0,:],0.015,color_L)
 
+    def compute_tip_forces_custom(self,wing_length,joint_L,joint_R,LE_pt,TE_pt,color_L,color_R,color_L_trace, color_R_trace, right_wing_on,beta, plot_wingtip_forces=True, plot_mean_forces=True, plot_lollipops=True):
+        #n_skip = 30
+        wt_L = np.array([0.0,wing_length,0.0])
+        wt_R = np.array([0.0,-wing_length,0.0])
+        wt_pts_L = np.array([[0.1,wing_length,0.0],[0.0,wing_length,0.0],[-0.1,wing_length,0.0],[-0.2,wing_length,0.0]])
+        wt_pts_R = np.array([[0.1,-wing_length,0.0],[0.0,-wing_length,0.0],[-0.1,-wing_length,0.0],[-0.2,-wing_length,0.0]])
+        LE_L = np.array([LE_pt,wing_length,0.0])
+        LE_R = np.array([LE_pt,-wing_length,0.0])
+        TE_L = np.array([TE_pt,wing_length,0.0])
+        TE_R = np.array([TE_pt,-wing_length,0.0])
+        wt_trace_L = np.zeros((3,self.N_pts))
+        wt_trace_R = np.zeros((3,self.N_pts))
+        LE_trace_L = np.zeros((3,self.N_pts))
+        LE_trace_R = np.zeros((3,self.N_pts))
+        TE_trace_L = np.zeros((3,self.N_pts))
+        TE_trace_R = np.zeros((3,self.N_pts))
+        FT_list = []
+        wt_list = []
+        FT_list_R = [] #RW
+        wt_list_R = [] #RW
+        #a_srf = -np.pi*(90.0/180.0)+beta
+        #a_srf = -np.pi*(90.0/180.0)+beta
+        #a_srf = -np.pi*(55.0/180.0)+beta
+        #a_srf = -np.pi*(90.0/180.0) #+beta
+        a_srf = self.beta
+        b_srf = self.beta
+        R_90 = np.array([[np.cos(a_srf),0.0,np.sin(a_srf)],[0.0,1.0,0.0],[-np.sin(a_srf),0.0,np.cos(a_srf)]])
+        R_beta = np.array([[np.cos(b_srf),0.0,np.sin(b_srf)],[0.0,1.0,0.0],[-np.sin(b_srf),0.0,np.cos(b_srf)]])
+        for i in range(self.N_pts):
+            R_phi_L   = np.array([[1.0,0.0,0.0],[0.0,np.cos(self.phi_L[i]),-np.sin(self.phi_L[i])],[0.0,np.sin(self.phi_L[i]),np.cos(self.phi_L[i])]])
+            R_theta_L = np.array([[np.cos(-self.theta_L[i]),-np.sin(-self.theta_L[i]),0.0],[np.sin(-self.theta_L[i]),np.cos(-self.theta_L[i]),0.0],[0.0,0.0,1.0]])
+            R_eta_L   = np.array([[np.cos(self.eta_L[i]),0.0,np.sin(self.eta_L[i])],[0.0,1.0,0.0],[-np.sin(self.eta_L[i]),0.0,np.cos(self.eta_L[i])]])
+            R_xi_L       = np.array([[np.cos(-self.xi_L[i]/3.0),0.0,np.sin(-self.xi_L[i]/3.0)],[0.0,1.0,0.0],[np.sin(-self.xi_L[i]/3.0),0.0,np.cos(-self.xi_L[i])]])
+            R_phi_R   = np.array([[1.0,0.0,0.0],[0.0,np.cos(-self.phi_R[i]),-np.sin(-self.phi_R[i])],[0.0,np.sin(-self.phi_R[i]),np.cos(-self.phi_R[i])]])
+            R_theta_R = np.array([[np.cos(self.theta_R[i]),-np.sin(self.theta_R[i]),0.0],[np.sin(self.theta_R[i]),np.cos(self.theta_R[i]),0.0],[0.0,0.0,1.0]])
+            R_eta_R   = np.array([[np.cos(self.eta_R[i]),0.0,np.sin(self.eta_R[i])],[0.0,1.0,0.0],[-np.sin(self.eta_R[i]),0.0,np.cos(self.eta_R[i])]])
+            R_xi_R       = np.array([[np.cos(-self.xi_R[i]/3.0),0.0,np.sin(-self.xi_R[i]/3.0)],[0.0,1.0,0.0],[np.sin(-self.xi_R[i]/3.0),0.0,np.cos(-self.xi_R[i])]])
+            R_L = np.dot(np.dot(np.dot(R_90,R_phi_L),R_theta_L),R_eta_L)
+            R_R = np.dot(np.dot(np.dot(R_90,R_phi_R),R_theta_R),R_eta_R)
+            R_FT_L = np.dot(np.dot(np.dot(R_90,R_phi_L),R_theta_L),R_eta_L)
+            R_FT_R = np.dot(np.dot(np.dot(R_90,R_phi_R),R_theta_R),R_eta_R)
+            wt_trace_L[:,i] = np.dot(R_L,wt_L)+joint_L
+            wt_trace_R[:,i] = np.dot(R_R,wt_R)+joint_R
+            lollipop_L = np.zeros((4,3))
+            lollipop_R = np.zeros((4,3))
+            for j in range(4):
+                if j<2:
+                    R_j_L = R_L
+                    R_j_R = R_R
+                elif j==2:
+                    R_j_L = np.dot(R_L,R_xi_L)
+                    R_j_R = np.dot(R_R,R_xi_R)
+                elif j==3:
+                    R_j_L = np.dot(np.dot(R_L,R_xi_L),R_xi_L)
+                    R_j_R = np.dot(np.dot(R_R,R_xi_R),R_xi_R)
+                lollipop_L[j,:] = np.dot(R_j_L,wt_pts_L[j,:])+joint_L
+                lollipop_R[j,:] = np.dot(R_j_R,wt_pts_R[j,:])+joint_R
+            LE_trace_L[:,i] = np.dot(R_L,LE_L)+joint_L
+            LE_trace_R[:,i] = np.dot(R_R,LE_R)+joint_R
+            TE_trace_L[:,i] = np.dot(R_L,TE_L)+joint_L
+            TE_trace_R[:,i] = np.dot(R_R,TE_R)+joint_R
+            if i%self.n_skip==0:
+                if plot_lollipops==True:
+                    self.lollipop(lollipop_L,color_L_trace)
+                FT_i = np.array([self.FX_L[i],self.FY_L[i],self.FZ_L[i]])
+                #FT_i = np.array([self.FX_L[i],0.0,self.FZ_L[i]])
+                FT_beta = np.dot(R_L,FT_i)
+                #FT_beta = np.dot(R_beta,FT_i)
+                FT_list.append([FT_beta[0],FT_beta[1],FT_beta[2]])
+                #FT_list.append([FT_i[0],FT_i[1],FT_i[2]])
+                wt_list.append([wt_trace_L[0,i],wt_trace_L[1,i],wt_trace_L[2,i]])
+                if right_wing_on>0:
+                    if plot_lollipops==True:
+                        self.lollipop(lollipop_R,color_R_trace)
+                    FT_i_R = np.array([self.FX_R[i],self.FY_R[i],self.FZ_R[i]])
+                    FT_beta_R = np.dot(R_R,FT_i_R)
+                    FT_list_R.append([FT_beta_R[0],FT_beta_R[1],FT_beta_R[2]])
+                    wt_list_R.append([wt_trace_R[0,i],wt_trace_R[1,i],wt_trace_R[2,i]])
+
+        self.tip_trace_L(wt_trace_L,color_L_trace)
+        FT_L = np.array(FT_list)
+        FT_root_L = np.array(wt_list)
+        if plot_wingtip_forces:
+            self.ForceGlyphs_tube_radius(FT_root_L,FT_L,color_L)
+        
+        if right_wing_on>0:
+            self.tip_trace_R(wt_trace_R,color_R_trace)
+            FT_R = np.array(FT_list_R)
+            FT_root_R = np.array(wt_list_R)
+            if plot_wingtip_forces:
+                self.ForceGlyphs_tube_radius(FT_root_R,FT_R,color_R)
+
+        FT_mean = np.zeros((2,3))
+        FT_mean[0,0] = np.mean(self.FX_mean)
+        FT_mean[0,1] = np.mean(self.FY_mean)
+        FT_mean[0,2] = np.mean(self.FZ_mean)
+        FT_mean[1,0] = np.mean(self.MX_mean)*0.003
+        FT_mean[1,1] = np.mean(self.MY_mean)*0.003
+        FT_mean[1,2] = np.mean(self.MZ_mean)*0.003
+        
+        # compute cp
+        cp_mean = self.compute_cp(FT_mean,3.0)
+        FT_mean_root = np.array([[cp_mean[0],cp_mean[1]+0.5,cp_mean[2]],[cp_mean[0],cp_mean[1]+0.5,cp_mean[2]]])
+
+        if plot_mean_forces:
+            self.MeanGlyph(FT_mean_root,FT_mean,color_L_trace)
+        
+        FT_0 = np.zeros((2,3))
+        FT_0[0,0] = np.mean(self.FX_0)
+        FT_0[0,1] = np.mean(self.FY_0)
+        FT_0[0,2] = np.mean(self.FZ_0)
+        FT_0[1,0] = np.mean(self.MX_0)*0.003
+        FT_0[1,1] = np.mean(self.MY_0)*0.003
+        FT_0[1,2] = np.mean(self.MZ_0)*0.003
+        cp_0 = self.compute_cp(FT_0,3.0)
+        FT_0_root = np.array([[cp_0[0],cp_0[1]+0.5,cp_0[2]],[cp_0[0],cp_0[1]+0.5,cp_0[2]]])
+        #print(FT_0)
+        #self.MeanGlyph(FT_0_root,FT_0,self.grey)
+        # Gravity vector:
+        FT_G = np.zeros((2,3))
+        FT_G[0,0] = self.FG[0]
+        FT_G[0,1] = self.FG[1]
+        FT_G[0,2] = self.FG[2]
+        self.MeanGlyph(FT_0_root,FT_G,self.black)   
+
+        # Body drag vector:
+        FT_D = np.zeros((2,3))
+        FT_D[0,0] = self.FD[0]
+        FT_D[0,1] = self.FD[1]
+        FT_D[0,2] = self.FD[2]
+        self.MeanGlyph(FT_0_root,FT_D,self.blue)
+        if right_wing_on>0:
+            self.tip_trace_R(wt_trace_R,color_R_trace)
+        # Setup joints:
+        j_c = np.array([0.0,0.5,0.0])
+        j_r = 0.1
+        self.joint(j_c,j_r,color_L)
+        self.arm(j_c,FT_0_root[0,:],0.015,self.grey)
+        self.arm(j_c,FT_mean_root[0,:],0.015,color_L)
+
     def compute_cp(self,FT_in,wing_L):
         #A = np.array([[0.0,FT_in[0,2],-FT_in[0,1]],[-FT_in[0,2],0.0,FT_in[0,0]],[FT_in[0,1],-FT_in[0,0],0.0],[FT_in[0,0],FT_in[0,1],FT_in[0,2]]])
         #b = np.array([[FT_in[1,0]],[FT_in[1,1]],[FT_in[1,2]],[0.0]])
@@ -737,6 +877,88 @@ class Lollipop():
 
         glyphActor = vtk.vtkActor()
         glyphActor.SetMapper(glyphMapper)
+        glyphActor.GetProperty().SetColor(glyph_color[0],glyph_color[1],glyph_color[2])
+
+        self.ren.AddActor(glyphActor)
+
+    #TODO: want to scale len of vector, not radius of arrow, is this possible?
+    def ForceGlyphs_tube_radius(self,force_root,force_vec,glyph_color):
+        arrow = vtk.vtkArrowSource()
+        arrow.SetTipResolution(16)
+        arrow.SetTipLength(0.1) #0.1
+        arrow.SetTipRadius(0.05) #0.05
+        arrow.SetShaftRadius(0.02) #0.02
+
+        N_glyphs = force_root.shape[0]
+        #print('N_glyphs: '+str(N_glyphs))
+
+        roots = vtk.vtkPoints()
+        velocity = vtk.vtkDoubleArray()
+        velocity.SetNumberOfComponents(3)
+        velocity.SetNumberOfTuples(N_glyphs)
+        velocity.SetName("velocity")
+        magnitude = vtk.vtkDoubleArray()
+        magnitude.SetNumberOfValues(N_glyphs)
+        magnitude.SetName("magnitude")
+
+        magnitude_3vals = vtk.vtkDoubleArray()
+        magnitude_3vals.SetNumberOfComponents(3)
+        magnitude_3vals.SetNumberOfTuples(N_glyphs)
+        magnitude_3vals.SetName("magnitude_3vals")
+
+        FT_mean = np.zeros(6)
+
+        for i in range(N_glyphs):
+            roots.InsertNextPoint(force_root[i,0],force_root[i,1],force_root[i,2])
+            force_mag = np.linalg.norm(force_vec[i,:])
+            if force_mag>0.01:
+                e1 = force_vec[i,0]/force_mag
+                e2 = force_vec[i,1]/force_mag
+                e3 = force_vec[i,2]/force_mag
+                vel = [e1,e2,e3]
+                vel_copy = vel.copy()
+                velocity.SetTuple(i, vel_copy)
+                magnitude.SetValue(i, force_mag)
+                magnitude_3vals.SetTuple(i, [force_mag, 1, 1])
+                #print('e1: '+str(e1)+', e2: '+str(e2)+', e3:'+str(e3))
+            else:
+                velocity.SetTuple(i, [0.0,0.0,0.0])
+                magnitude.SetValue(i, 0.0)
+            FT_mean[0] += force_vec[i,0]/(1.0*N_glyphs)
+            FT_mean[1] += force_vec[i,1]/(1.0*N_glyphs)
+            FT_mean[2] += force_vec[i,2]/(1.0*N_glyphs)
+            FT_mean[3] += (force_vec[i,2]*force_root[i,1]-force_vec[i,1]*force_root[i,2])/(1.0*N_glyphs)
+            FT_mean[4] += (force_vec[i,0]*force_root[i,2]-force_vec[i,2]*force_root[i,0])/(1.0*N_glyphs)
+            FT_mean[5] += (force_vec[i,1]*force_root[i,0]-force_vec[i,0]*force_root[i,1])/(1.0*N_glyphs)
+        poly = vtk.vtkPolyData()
+        poly.SetPoints(roots)
+        poly.GetPointData().AddArray(velocity)
+        poly.GetPointData().SetActiveVectors("velocity")
+        poly.GetPointData().AddArray(magnitude)
+        poly.GetPointData().SetActiveScalars("magnitude")
+        # poly.GetPointData().SetActiveScalars("magnitude_3vals")
+
+        # Create glyph.
+        glyph = vtk.vtkGlyph3D()
+        glyph.SetInputData(poly)
+        glyph.SetSourceConnection(arrow.GetOutputPort())
+        glyph.SetScaleFactor(1.05) #1.05
+        #glyph.OrientOn()
+        glyph.SetVectorModeToUseVector()
+        # glyph.SetScaleModeToDataScalingOff()
+        #glyph.SetColorModeToColorByScalar()
+        #glyph.SetColorModeToColorByScale()
+        glyph.Update()
+
+        glyphMapper = vtk.vtkPolyDataMapper()
+        glyphMapper.ScalarVisibilityOff()
+        glyphMapper.SetInputConnection(glyph.GetOutputPort())
+
+        glyphActor = vtk.vtkActor()
+        glyphActor.SetMapper(glyphMapper)
+        #
+        # glyphActor.SetScale(magnitude_3vals)
+        #
         glyphActor.GetProperty().SetColor(glyph_color[0],glyph_color[1],glyph_color[2])
 
         self.ren.AddActor(glyphActor)
