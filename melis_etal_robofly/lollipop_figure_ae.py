@@ -934,9 +934,12 @@ class Lollipop():
         poly.SetPoints(roots)
         poly.GetPointData().AddArray(velocity)
         poly.GetPointData().SetActiveVectors("velocity")
-        poly.GetPointData().AddArray(magnitude)
-        poly.GetPointData().SetActiveScalars("magnitude")
-        # poly.GetPointData().SetActiveScalars("magnitude_3vals")
+        # poly.GetPointData().AddArray(magnitude)
+        # poly.GetPointData().SetActiveScalars("magnitude")
+        #
+        poly.GetPointData().AddArray(magnitude_3vals)
+        poly.GetPointData().SetActiveScalars("magnitude_3vals")
+        #
 
         # Create glyph.
         glyph = vtk.vtkGlyph3D()
@@ -944,7 +947,12 @@ class Lollipop():
         glyph.SetSourceConnection(arrow.GetOutputPort())
         glyph.SetScaleFactor(1.05) #1.05
         #glyph.OrientOn()
+
         glyph.SetVectorModeToUseVector()
+
+        #
+        # glyph.SetScaleModeToScaleByScalar()
+        #
         # glyph.SetScaleModeToDataScalingOff()
         #glyph.SetColorModeToColorByScalar()
         #glyph.SetColorModeToColorByScale()
