@@ -11,6 +11,46 @@ import h5py
 from scipy.special import binom
 
 from .lollipop_figure_ae import Lollipop
+from matplotlib import rc
+
+##plotting format params
+format = 'nature' #or science 
+
+if format=='nature':
+    plt.rcParams['pdf.fonttype']=42 # not sure if need to apply to svg as well 
+    column_width_1 = 3.50394 #inches
+    column_width_2 = 7.20472441 #inches
+    max_height = 6.69291339 #inches
+    maxmum_font_size = 7
+    line_width_min = 0.25
+    line_width_max = 1
+
+if format=='science':
+    column_width_1 = 2.24 #inches
+    column_width_3 = 7.24 #inches 
+    column_width_2 = 4.76 #inches science 
+    
+    line_width_min=0.5
+    point_size_min= 6
+    line_width_max = 2 #0.35 #double check with science
+    
+
+plt.rcParams['svg.fonttype'] = 'none'           
+title_font = 7#56
+axes_title_font = 6 #7#56
+ticklabel_font = 6 #7#30
+driverlabel_font = 6 #2.5 #3 #16
+height = 3.25 #2.25-for only traces #inches # 5.5 full 1/2 page figure
+line_width = line_width_max #default to max
+minimum_font_size = 5 #both science and nature 
+point_size_min = 6 # for science at least
+dpi_fig = 300
+##
+
+# set font 
+rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+rc('text', usetex=True)
+
 
 
 class RoboAnalysis():
@@ -202,7 +242,7 @@ class RoboAnalysis():
         self.M_scaling_list_means.append(self.M_scaling)
 
 
-    def load_mat_file(self,file_loc_in,file_name_in):
+    def load_mat_file(self,file_loc_in,file_name_in, gain_factor=2.0):
         file_path = pathlib.Path(file_loc_in, file_name_in)
         self.mat_file = scipy.io.loadmat(file_path)
         # time
@@ -238,7 +278,7 @@ class RoboAnalysis():
         self.T_fast = (self.t_FT_fast/self.t_FT_fast[-1])*7.0
         self.T_slow = (self.t_FT_slow/self.t_FT_slow[-1])*7.0
         # FT wing
-        self.FT_wing = self.compute_FT_wing(self.FT_out, gain_factor=2.0) #gain factor from conversion from robofly 
+        self.FT_wing = self.compute_FT_wing(self.FT_out, gain_factor=gain_factor) #gain factor from conversion from robofly 
 
     #still do sign flip on the right wing for 1,3,5
     #add a gain factor?
@@ -2084,6 +2124,164 @@ class RoboAnalysis():
             inertial_term = '_aero_only'
 
         plt.savefig(save_location + 'LpR_wing_forces_only_baseline_stim_vertical_layout' + inertial_term + '.png')
+
+    def plot_LpR_forces_baseline_stim_bilateral(self, 
+                                                save_location, 
+                                                include_inertial=False, 
+                                                gain_factor=1.0,
+                                                fig_size=(column_width_1/2, column_width_1*(3/4)), 
+                                                axis_ticklabel_fontsize=ticklabel_font, 
+                                                axis_label_fontsize=axes_title_font, 
+                                                line_width=1,
+                                                extension='.svg', 
+                                                dpi=300):
+        """"
+        plot left and right wing total forces (FT SRF + Lb inerital (optional)) for baseline and stim
+        does not include wing kinematics
+        *only includes bilaterally symmetric forces
+        """
+        Fg = self.mass*self.g
+        FgR = self.mass*self.g*self.R_fly
+
+        rows=3
+        cols=1
+        fig, axs = plt.subplots(rows,cols) # baseline breakdown, stim breakdown, mean w/and w/o baseline, mean w/ and w/o stim
+    
+        # L wing, baseline and stim
+        Lwing_baseline_ind = 0
+        # Rwing_baseline_ind = 1
+        Lwing_stim_ind = 2
+        # Rwing_stim_ind = 3
+
+        t_baseline= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_baseline_ind][0,:])[0])
+        # t_baseline_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_baseline_ind][0,:])[0])
+        t_stim= np.linspace(0,1, np.shape(self.FT_SRF_list_means[Lwing_stim_ind][0,:])[0])
+        # t_stim_R = np.linspace(0,1, np.shape(self.FT_SRF_list_means[Rwing_stim_ind][0,:])[0])
+
+        if include_inertial==False:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                    line_style = '-'
+                    alpha=0.5
+                else:
+                    color='r'
+                    t = t_stim
+                    line_style = '--'
+                    alpha=1
+                for row, force in enumerate([0,2,4]): #Fx, Fz, My
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force = self.FT_SRF_list_means[i][force,:]*scaling
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling
+                    axs[row].plot(t,(L_force + R_force)/body_scale,color=color, linewidth=line_width)
+                    #add mean force 
+                    axs[row].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle=line_style, color=color, alpha=alpha, linewidth=line_width)
+
+        else:
+            for i in [0,2]: #baseline, stim
+                if i==0:
+                    color='k'
+                    t = t_baseline
+                    line_style = '-'
+                    alpha=0.5
+                else:
+                    color='r'
+                    t = t_stim
+                    line_style = '--'
+                    alpha=1
+                for row, force in enumerate([0,2,4]):
+                    if force<3:
+                        scaling = self.F_scaling
+                        body_scale = Fg
+                    else:
+                        scaling = self.M_scaling
+                        body_scale = FgR
+                    
+                    L_force =self.FT_SRF_list_means[i][force,:]*scaling+self.FTI_acc_b_list_means[i][force,:]+self.FTI_vel_b_list_means[i][force,:]
+                    R_force =  self.FT_SRF_list_means[i+1][force,:]*scaling+self.FTI_acc_b_list_means[i+1][force,:]+self.FTI_vel_b_list_means[i+1][force,:]
+                    axs[row].plot(t,(L_force + R_force)/body_scale,color=color, linewidth=line_width)
+                    #add mean force 
+                    axs[row].hlines(np.mean((L_force + R_force)/body_scale),t[0], t[-1], linestyle=line_style, color=color, alpha=alpha, linewidth=line_width)
+
+
+
+        axs[0].set_ylabel('Fx/mg', fontsize=axis_label_fontsize, rotation=0, labelpad=10)
+        axs[1].set_ylabel('Fz/mg', fontsize=axis_label_fontsize, rotation=0, labelpad=10)
+        axs[2].set_ylabel('My/mgR', fontsize=axis_label_fontsize, rotation=0, labelpad=10)
+        axs[0].set_title('Sum(left, right) wing forces', fontsize=axes_title_font)
+    
+
+        for i in range(rows):
+                axs[i].set_xticks([])
+                axs[i].spines['top'].set_visible(False)
+                axs[i].spines['right'].set_visible(False)
+                axs[i].spines['bottom'].set_visible(False)
+        axs[-1].set_xticks([0,1])
+        axs[-1].spines['bottom'].set_visible(True)
+        axs[-1].spines.bottom.set_bounds((0,1))
+        axs[-1].set_xlabel('wingbeat', fontsize=axis_label_fontsize)
+
+        if gain_factor==2.0:
+            axs[0].set_ylim(-2, 8)
+            axs[0].set_yticks([0,1,2,3,4,5])
+            axs[0].spines.left.set_bounds((0, 5))
+            axs[1].set_ylim(-1, 8)
+            axs[1].set_yticks([0,1,2,3,4,5])
+            axs[1].spines.left.set_bounds((0, 5))
+            axs[2].set_ylim(-1, 1)
+            axs[2].set_yticks([-0.5,0,0.5])
+            axs[2].spines.left.set_bounds((-0.5, 0.5))
+        else:
+            axs[0].set_ylim(-1, 3.5)
+            axs[0].set_yticks([0,1,2,3])
+            axs[0].spines.left.set_bounds((0, 3))
+            axs[1].set_ylim(-1, 5)
+            axs[1].set_yticks([0,1,2,3,4])
+            axs[1].spines.left.set_bounds((0, 4))
+            axs[2].set_ylim(-0.5, 0.5)
+            axs[2].set_yticks([-0.25,0,0.25])
+            axs[2].spines.left.set_bounds((-0.25, 0.25))
+
+        # axs[3].set_ylim(-2, 6)
+        # axs[3].set_yticks([-1,0,2,4])
+        # axs[4].set_ylim(-2, 2)
+        # axs[4].set_yticks([-1,0,1])
+        # axs[5].set_ylim(-3, 2)
+        # axs[5].set_yticks([-1,0,1])
+
+        for row in range(rows):
+            axs[row].yaxis.set_tick_params(which="major", direction="in",  width=0.5, length=1)
+            axs[row].xaxis.set_tick_params(which="major", direction="in",  width=0.5, length=1)
+
+            axs[row].spines.left.set_linewidth(0.5)
+            axs[row].spines.bottom.set_linewidth(0.5)
+            
+            axs[row].set_xticklabels(axs[row].get_xticks(), fontsize=axis_ticklabel_fontsize)
+            axs[row].set_yticklabels(axs[row].get_yticks(), fontsize=axis_ticklabel_fontsize)
+
+            # axs[row].set_ylim(-1, 1)
+            # axs[row].set_yticksim(-1, 0, 1)
+            #axs[row].spines.left.set_bounds((-1, 1))
+        
+        
+        fig.align_ylabels(axs[:])
+        fig.set_size_inches(fig_size)
+        plt.tight_layout()
+        # plt.show()
+        if include_inertial==True:
+            inertial_term = ''
+        else:
+            inertial_term = '_aero_only'
+
+        fig.subplots_adjust(hspace=0)
+        plt.savefig(save_location + 'LpR_wing_bilateral_forces_baseline_stim' + inertial_term + '_gain_'+ str(gain_factor)[0] + extension, dpi=dpi)
 
     def plot_LpR_forces_baseline_stim_horizontal(self, save_location, include_inertial=True):
         """"
